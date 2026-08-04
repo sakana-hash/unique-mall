@@ -1,0 +1,22 @@
+server:
+  port: 8000
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${unique-mall.nacos.host}:${unique-mall.nacos.port}
+      username: ${unique-mall.nacos.username}
+      password: ${unique-mall.nacos.password}
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: user-service
+              uri: lb://user-service
+              predicates:
+                - Path=/api/user/**
