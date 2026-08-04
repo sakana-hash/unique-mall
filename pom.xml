@@ -16,6 +16,7 @@
         <module>product-service</module>
         <module>stock-service</module>
         <module>order-service</module>
+        <module>snowflake-spring-boot-starter</module>
     </modules>
 
     <properties>
@@ -27,7 +28,7 @@
         <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
 
         <common.version>1.0-SNAPSHOT</common.version>
-        <snowflake-id-spring.version>1.0-SNAPSHOT</snowflake-id-spring.version>
+        <snowflake-spring.version>1.0-SNAPSHOT</snowflake-spring.version>
     </properties>
 
     <dependencyManagement>
@@ -60,6 +61,12 @@
                 <groupId>io.github.sakana-hash</groupId>
                 <artifactId>common</artifactId>
                 <version>${common.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.sakana-hash</groupId>
+                <artifactId>snowflake-spring-boot-starter</artifactId>
+                <version>${snowflake-spring.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
