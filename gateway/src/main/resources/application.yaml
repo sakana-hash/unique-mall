@@ -1,6 +1,15 @@
 server:
   port: 8000
 
+unique-mall:
+  jwt:
+    secret-key: ${unique-mall.jwt.secret-key}
+    ttl: ${unique-mall.jwt.ttl}
+  gateway:
+    auth:
+      ignore-urls:
+        - /api/user/auth/register
+
 spring:
   profiles:
     active: dev

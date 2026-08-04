@@ -20,11 +20,11 @@ spring:
 
 unique-mall:
   jwt:
-    secret-key: j43iojtoi23j589wfg9hq3u4jrfqj4fj8qo4qijfqoi2
-    ttl: 604_800_000
+    secret-key: ${unique-mall.jwt.secret-key}
+    ttl: ${unique-mall.jwt.ttl}
   snowflake:
-    datacenter-id: 0
-    worker-id: 0
+    datacenter-id: ${unique-mall.snowflake.datacenter-id}
+    worker-id: ${unique-mall.snowflake.worker-id}
 
 mybatis:
   configuration:
