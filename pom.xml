@@ -16,7 +16,7 @@
         <module>product-service</module>
         <module>stock-service</module>
         <module>order-service</module>
-        <module>snowflake-spring-boot-starter</module>
+        <module>unique-spring-boot-starter</module>
     </modules>
 
     <properties>
@@ -65,7 +65,7 @@
 
             <dependency>
                 <groupId>io.github.sakana-hash</groupId>
-                <artifactId>snowflake-spring-boot-starter</artifactId>
+                <artifactId>unique-spring-boot-starter</artifactId>
                 <version>${snowflake-spring.version}</version>
             </dependency>
         </dependencies>
