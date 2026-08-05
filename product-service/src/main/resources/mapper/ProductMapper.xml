@@ -58,7 +58,7 @@
         where status = 1
 
         <if test="categoryId != null">
-            and p.category_id = #{categoryId}
+            and category_id = #{categoryId}
         </if>
     </select>
 </mapper>

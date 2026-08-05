@@ -20,5 +20,5 @@ public enum ProductSort {
     /**
      * 销量降序
      */
-    SALES_DESC
+    // SALES_DESC
 }
