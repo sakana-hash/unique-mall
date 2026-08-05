@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourcePerFileMappings">
+    <file url="file://$PROJECT_DIR$/product-service/src/main/resources/sql/mock_data.sql" value="09ea2862-e0b4-4690-9bc5-7d408142315e" />
+    <file url="file://$PROJECT_DIR$/product-service/src/main/resources/sql/product.sql" value="09ea2862-e0b4-4690-9bc5-7d408142315e" />
+    <file url="file://$PROJECT_DIR$/product-service/src/main/resources/sql/product_category.sql" value="09ea2862-e0b4-4690-9bc5-7d408142315e" />
+    <file url="file://$PROJECT_DIR$/product-service/src/main/resources/sql/product_detail.sql" value="09ea2862-e0b4-4690-9bc5-7d408142315e" />
+    <file url="file://$PROJECT_DIR$/product-service/src/main/resources/sql/product_image.sql" value="09ea2862-e0b4-4690-9bc5-7d408142315e" />
+    <file url="file://$PROJECT_DIR$/product-service/src/main/resources/sql/product_sku.sql" value="09ea2862-e0b4-4690-9bc5-7d408142315e" />
     <file url="file://$PROJECT_DIR$/user-service/src/main/java/io/github/sakana/user/mapper/UserProfileMapper.java" value="09ea2862-e0b4-4690-9bc5-7d408142315e" />
     <file url="file://$PROJECT_DIR$/user-service/src/main/resources/sql/user.sql" value="09ea2862-e0b4-4690-9bc5-7d408142315e" />
     <file url="file://$PROJECT_DIR$/user-service/src/main/resources/sql/user_address.sql" value="09ea2862-e0b4-4690-9bc5-7d408142315e" />

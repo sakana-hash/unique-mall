@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.github.sakana.product.mapper.ProductMapper">
+
+    <select id="selectPage" resultType="io.github.sakana.product.pojo.vo.ProductPageVO">
+        select
+            p.id productId,
+            p.name,
+
+            pi.url mainImage,
+
+            min(ps.price) minPrice
+
+        from product.product p
+
+        left join product.product_sku ps
+        on p.id = ps.product_id
+
+        left join product.product_image pi
+        on p.id = pi.product_id
+        and pi.type = 1
+
+        where p.status = 1
+
+        <if test="categoryId != null">
+            and p.category_id = #{categoryId}
+        </if>
+
+        group by
+            p.id,
+            p.name,
+            pi.url,
+            p.created_time
+
+        <choose>
+
+            <when test="sort == @io.github.sakana.product.enumeration.ProductSort@PRICE_ASC">
+                order by min(ps.price)
+            </when>
+
+            <when test="sort == @io.github.sakana.product.enumeration.ProductSort@PRICE_DESC">
+                order by min(ps.price) desc
+            </when>
+
+            <otherwise>
+                order by p.created_time desc
+            </otherwise>
+
+        </choose>
+
+        limit #{offset}, #{size}
+    </select>
+
+    <select id="count" resultType="java.lang.Long">
+        select count(*)
+        from product.product
+        where status = 1
+
+        <if test="categoryId != null">
+            and p.category_id = #{categoryId}
+        </if>
+    </select>
+</mapper>

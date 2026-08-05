@@ -3,7 +3,7 @@ package io.github.sakana.aspect;
 import io.github.sakana.annotation.AutoFill;
 import io.github.sakana.common.entity.BaseEntity;
 import io.github.sakana.common.entity.UpdatableEntity;
-import io.github.sakana.common.enumeration.enumeration.OperationType;
+import io.github.sakana.common.enumeration.OperationType;
 import io.github.sakana.snowflake.SnowflakeIdGenerator;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
