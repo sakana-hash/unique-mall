@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface UserProfileMapper {
 
-    @Insert("insert into `user`.`user_profile` (id, user_id) values " +
-            "(#{id}, #{userId})")
+    @Insert("insert into `user`.`user_profile` (id, user_id, created_time, updated_time) values " +
+            "(#{id}, #{userId}, #{createdTime}, #{updatedTime})")
     int insert(UserProfile profile);
 }

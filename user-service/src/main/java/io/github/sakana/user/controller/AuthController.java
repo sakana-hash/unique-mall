@@ -7,10 +7,7 @@ import io.github.sakana.user.pojo.vo.LoginVO;
 import io.github.sakana.user.pojo.vo.RegisterVO;
 import io.github.sakana.user.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/user/auth")
@@ -20,8 +17,12 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register")
-    Result<RegisterVO> register(@RequestBody RegisterDTO registerDTO) {
-        String token = authService.register(registerDTO.getUsername(), registerDTO.getPassword());
+    Result<RegisterVO> register(@RequestBody RegisterDTO registerDTO,
+                                @RequestHeader("X-User-IP") String ip,
+                                @RequestHeader("X-User-Device") String device) {
+        registerDTO.setIp(ip);
+        registerDTO.setDevice(device);
+        String token = authService.register(registerDTO);
 
         RegisterVO registerVO = new RegisterVO();
         registerVO.setToken(token);
@@ -29,8 +30,12 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    Result<LoginVO> login(@RequestBody LoginDTO loginDTO) {
-        String token = authService.login(loginDTO.getUsername(), loginDTO.getPassword());
+    Result<LoginVO> login(@RequestBody LoginDTO loginDTO,
+                          @RequestHeader("X-User-IP") String ip,
+                          @RequestHeader("X-User-Device") String device) {
+        loginDTO.setIp(ip);
+        loginDTO.setDevice(device);
+        String token = authService.login(loginDTO);
 
         LoginVO loginVO = new LoginVO();
         loginVO.setToken(token);

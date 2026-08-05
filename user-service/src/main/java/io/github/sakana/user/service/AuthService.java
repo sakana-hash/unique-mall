@@ -1,7 +1,10 @@
 package io.github.sakana.user.service;
 
+import io.github.sakana.user.pojo.dto.LoginDTO;
+import io.github.sakana.user.pojo.dto.RegisterDTO;
+
 public interface AuthService {
 
-    String register(String username, String password);
-    String login(String username, String password);
+    String register(RegisterDTO registerDTO);
+    String login(LoginDTO loginDTO);
 }

@@ -7,8 +7,8 @@ create table `user`.`user`
     phone        varchar(20)                        null comment '手机号',
     email        varchar(128)                       null comment '邮箱',
     status       tinyint  default 1                 not null comment '状态 1正常 0禁用',
-    created_time datetime default CURRENT_TIMESTAMP not null,
-    updated_time datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
+    created_time datetime not null,
+    updated_time datetime not null,
 
     unique key uk_username(username),
     unique key uk_phone(phone),

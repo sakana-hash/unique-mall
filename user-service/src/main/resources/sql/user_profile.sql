@@ -7,8 +7,8 @@ create table `user`.`user_profile`
     avatar       varchar(512)                       null,
     gender       tinyint                            null comment '0未知 1男 2女',
     birthday     date                               null,
-    created_time datetime default CURRENT_TIMESTAMP not null,
-    updated_time datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
+    created_time datetime not null,
+    updated_time datetime not null,
 
     unique key uk_user_id(user_id)
 );

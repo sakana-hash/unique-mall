@@ -8,8 +8,8 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface UserMapper {
 
-    @Insert("insert into `user`.`user` (id, username, password) values " +
-            "(#{id}, #{username}, #{password})")
+    @Insert("insert into `user`.`user` (id, username, password, created_time, updated_time) values " +
+            "(#{id}, #{username}, #{password}, #{createdTime}, #{updatedTime})")
     int insert(User user);
 
     @Select("select * from `user`.`user` where username = #{username}")
