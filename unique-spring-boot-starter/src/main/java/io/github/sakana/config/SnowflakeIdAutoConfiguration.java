@@ -1,5 +1,6 @@
-package io.github.sakana.snowflake;
+package io.github.sakana.config;
 
+import io.github.sakana.snowflake.SnowflakeIdGenerator;
 import io.github.sakana.snowflake.properties.SnowflakeProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

@@ -1,19 +1,14 @@
 package io.github.sakana.user.pojo.entity;
 
+import io.github.sakana.common.entity.UpdatableEntity;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 @Data
-public class User {
+public class User extends UpdatableEntity {
 
-    private Long id;
     private String username;
     private String password;
     private String phone;
     private String email;
     private Integer status;
-
-    private LocalDateTime createdTime;
-    private LocalDateTime updatedTime;
 }

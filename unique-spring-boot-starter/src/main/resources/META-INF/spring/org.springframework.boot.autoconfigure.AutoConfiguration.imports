@@ -1,1 +1,2 @@
-io.github.sakana.snowflake.SnowflakeIdAutoConfiguration
+io.github.sakana.config.SnowflakeIdAutoConfiguration
+io.github.sakana.config.AutoFillAutoConfiguration

@@ -28,7 +28,7 @@
         <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
 
         <common.version>1.0-SNAPSHOT</common.version>
-        <snowflake-spring.version>1.0-SNAPSHOT</snowflake-spring.version>
+        <unique-spring-starter.version>1.0-SNAPSHOT</unique-spring-starter.version>
     </properties>
 
     <dependencyManagement>
@@ -66,7 +66,7 @@
             <dependency>
                 <groupId>io.github.sakana-hash</groupId>
                 <artifactId>unique-spring-boot-starter</artifactId>
-                <version>${snowflake-spring.version}</version>
+                <version>${unique-spring-starter.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

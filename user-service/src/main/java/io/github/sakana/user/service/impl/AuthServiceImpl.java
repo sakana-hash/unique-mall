@@ -57,13 +57,10 @@ public class AuthServiceImpl implements AuthService {
         }
 
         Long id = snowflakeIdGenerator.nextId();
-        LocalDateTime now = LocalDateTime.now();
         User user = new User();
         user.setId(id);
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
-        user.setCreatedTime(now);
-        user.setUpdatedTime(now);
         try {
             userMapper.insert(user);
         } catch (DuplicateKeyException ex) {
@@ -72,24 +69,16 @@ public class AuthServiceImpl implements AuthService {
             ));
         }
 
-        Long profileId = snowflakeIdGenerator.nextId();
-        now = LocalDateTime.now();
         UserProfile profile = new UserProfile();
-        profile.setId(profileId);
         profile.setUserId(id);
-        profile.setCreatedTime(now);
-        profile.setUpdatedTime(now);
         profileMapper.insert(profile);
 
-        Long logId = snowflakeIdGenerator.nextId();
-        now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         UserLoginLog loginLog = new UserLoginLog();
-        loginLog.setId(logId);
         loginLog.setUserId(user.getId());
         loginLog.setIp(ip);
         loginLog.setDevice(device);
         loginLog.setLoginTime(now);
-        loginLog.setCreatedTime(now);
         loginLogMapper.insert(loginLog);
         return JWTUtil.issueJWT(jwtProperty.getSecretKey(), jwtProperty.getTtl(), id.toString());
     }
@@ -118,15 +107,12 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("用户名或密码错误");
         }
 
-        Long logId = snowflakeIdGenerator.nextId();
         LocalDateTime now = LocalDateTime.now();
         UserLoginLog loginLog = new UserLoginLog();
-        loginLog.setId(logId);
         loginLog.setUserId(user.getId());
         loginLog.setIp(ip);
         loginLog.setDevice(device);
         loginLog.setLoginTime(now);
-        loginLog.setCreatedTime(now);
         loginLogMapper.insert(loginLog);
         return JWTUtil.issueJWT(jwtProperty.getSecretKey(), jwtProperty.getTtl(), user.getId().toString());
     }
