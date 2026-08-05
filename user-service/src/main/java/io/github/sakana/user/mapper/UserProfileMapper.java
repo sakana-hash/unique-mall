@@ -1,0 +1,13 @@
+package io.github.sakana.user.mapper;
+
+import io.github.sakana.user.pojo.entity.UserProfile;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserProfileMapper {
+
+    @Insert("insert into `user`.`user_profile` (id, user_id) values " +
+            "(#{id}, #{userId})")
+    int insert(UserProfile profile);
+}
