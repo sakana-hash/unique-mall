@@ -9,6 +9,7 @@ unique-mall:
     auth:
       ignore-urls:
         - /api/user/auth/register
+        - /api/user/auth/login
 
 spring:
   profiles:

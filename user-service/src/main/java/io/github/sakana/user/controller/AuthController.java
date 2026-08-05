@@ -1,7 +1,9 @@
 package io.github.sakana.user.controller;
 
 import io.github.sakana.common.result.Result;
+import io.github.sakana.user.pojo.dto.LoginDTO;
 import io.github.sakana.user.pojo.dto.RegisterDTO;
+import io.github.sakana.user.pojo.vo.LoginVO;
 import io.github.sakana.user.pojo.vo.RegisterVO;
 import io.github.sakana.user.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,4 +28,12 @@ public class AuthController {
         return Result.success(registerVO);
     }
 
+    @PostMapping("/login")
+    Result<LoginVO> login(@RequestBody LoginDTO loginDTO) {
+        String token = authService.login(loginDTO.getUsername(), loginDTO.getPassword());
+
+        LoginVO loginVO = new LoginVO();
+        loginVO.setToken(token);
+        return Result.success(loginVO);
+    }
 }

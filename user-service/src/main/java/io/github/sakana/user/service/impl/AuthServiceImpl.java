@@ -61,4 +61,22 @@ public class AuthServiceImpl implements AuthService {
 
         return JWTUtil.issueJWT(jwtProperty.getSecretKey(), jwtProperty.getTtl(), id.toString());
     }
+
+    @Override
+    public String login(String username, String password) {
+        if (username == null || username.isBlank()) {
+            throw new RuntimeException("用户名不能为空");
+        }
+
+        if (password == null || password.isBlank()) {
+            throw new RuntimeException("密码不能为空");
+        }
+
+        User user = userMapper.selectByUsername(username);
+        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("用户名或密码错误");
+        }
+
+        return JWTUtil.issueJWT(jwtProperty.getSecretKey(), jwtProperty.getTtl(), user.getId().toString());
+    }
 }
