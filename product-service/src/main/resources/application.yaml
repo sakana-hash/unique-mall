@@ -17,6 +17,12 @@ spring:
     url: jdbc:mysql://${unique-mall.datasource.host}:${unique-mall.datasource.port}/${unique-mall.datasource.database}
     username: ${unique-mall.datasource.username}
     password: ${unique-mall.datasource.password}
+  data:
+    redis:
+      host: ${unique-mall.redis.host}
+      port: ${unique-mall.redis.port}
+      password: ${unique-mall.redis.password}
+      database: ${unique-mall.redis.database}
 
 unique-mall:
   snowflake:

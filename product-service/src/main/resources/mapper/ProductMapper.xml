@@ -3,23 +3,13 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="io.github.sakana.product.mapper.ProductMapper">
 
-    <select id="selectPage" resultType="io.github.sakana.product.pojo.vo.ProductPageVO">
+    <select id="selectPage" resultType="java.lang.Long">
         select
-            p.id productId,
-            p.name,
-
-            pi.url mainImage,
-
-            min(ps.price) minPrice
-
+            p.id
         from product.product p
 
         left join product.product_sku ps
         on p.id = ps.product_id
-
-        left join product.product_image pi
-        on p.id = pi.product_id
-        and pi.type = 1
 
         where p.status = 1
 
@@ -29,8 +19,6 @@
 
         group by
             p.id,
-            p.name,
-            pi.url,
             p.created_time
 
         <choose>
@@ -60,5 +48,14 @@
         <if test="categoryId != null">
             and category_id = #{categoryId}
         </if>
+    </select>
+    
+    <select id="selectByIds" resultType="io.github.sakana.product.pojo.entity.Product">
+        select *
+        from product.product
+        where id in 
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
     </select>
 </mapper>
