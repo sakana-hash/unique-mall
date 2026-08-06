@@ -14,7 +14,7 @@
                         select id
                         from product.product
                         where product.status = 1
-                            category_id = #{categoryId}
+                            and category_id = #{categoryId}
                     )
                 </if>
                 group by product_id
@@ -30,7 +30,7 @@
                     select id
                     from product.product
                     where product.status = 1
-                        category_id = #{categoryId}
+                        and category_id = #{categoryId}
                     )
                 </if>
                 group by product_id
