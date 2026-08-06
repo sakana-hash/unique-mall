@@ -1,9 +1,5 @@
 package io.github.sakana.product.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.github.sakana.product.enumeration.PageSort;
 import io.github.sakana.product.mapper.ProductDetailMapper;
 import io.github.sakana.product.mapper.ProductImageMapper;
@@ -18,11 +14,9 @@ import io.github.sakana.product.service.CacheService;
 import io.github.sakana.product.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -39,17 +33,7 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private ProductImageMapper imageMapper;
     @Autowired
-    private StringRedisTemplate redisTemplate;
-    @Autowired
     private CacheService cacheService;
-
-    private static final ObjectMapper mapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    private static final String PRODUCT_KEY_PREFIX = "product-service:product:";
-    private static final long PRODUCT_CACHE_EXPIRE_TIME = 600;
-    private static final String PAGE_RESULT_KEY_PREFIX = "product-service:page:";
-    private static final long PAGE_RESULT_CACHE_EXPIRE_TIME = 60;
 
 
     @Override
@@ -72,25 +56,19 @@ public class ProductServiceImpl implements ProductService {
             ));
         }
 
-        String pageResultKey = cacheService.buildPageResultKey(page, size, categoryId, sort);
-        PageResult result = cacheService.getPageResult(pageResultKey);
+        String key = cacheService.buildPageResultKey(page, size, categoryId, sort);
+        PageResult result = cacheService.getPageResult(key);
         if (result == null) {
             PageQuery query = new PageQuery((page - 1) * size, size, categoryId, sort);
             result = new PageResult(productMapper.selectPage(query), productMapper.count(query));
-            cacheService.setPageResult(pageResultKey, result);
+            cacheService.setPageResult(key, result);
         }
 
         List<Product> products = batchGetDetails(result.getIds());
         List<ProductPageVO> productPageVOS = products.stream()
                 .map(Product::toPageVO)
                 .collect(Collectors.toList());
-        PageVO<ProductPageVO> pageVO = new PageVO<>();
-        pageVO.setItems(productPageVOS);
-        pageVO.setTotal(result.getTotal());
-        pageVO.setPage(page);
-        pageVO.setSize(size);
-        pageVO.setPages((result.getTotal() + size - 1) / size);
-        return pageVO;
+        return new PageVO<>(productPageVOS, result.getTotal(), page, size, (result.getTotal() + size - 1) / size);
     }
 
     /**
@@ -105,42 +83,23 @@ public class ProductServiceImpl implements ProductService {
             return new ArrayList<>();
         }
 
-        // 1. 构建 redis key 并尝试批量获取 products
-        List<String> keys = ids.stream()
-                .map(id -> PRODUCT_KEY_PREFIX + id)
-                .collect(Collectors.toList());
 
         Map<Long, Product> cachedMap = new HashMap<>();
         List<Long> missIds = new ArrayList<>();
-        try {
-            List<String> cachedJsonList = redisTemplate.opsForValue().multiGet(keys);
+
+        List<Product> products = cacheService.getProducts(ids);
+        if (products == null) {
+            missIds = ids;
+        } else {
             for (int i = 0; i < ids.size(); i++) {
                 Long id = ids.get(i);
-                String cachedJson = cachedJsonList == null ? null : cachedJsonList.get(i);
-                if (cachedJson == null) {
+                Product product = products.get(i);
+                if (product == null) {
                     missIds.add(id);
-                    continue;
-                }
-                try {
-                    Product product = mapper.readValue(cachedJson, Product.class);
-                    if (product.getImages() == null) {
-                        product.setImages(Collections.emptyList());
-                    }
-                    if (product.getSkus() == null) {
-                        product.setSkus(Collections.emptyList());
-                    }
+                } else {
                     cachedMap.put(id, product);
-                } catch (JsonProcessingException e) {
-                    // 缓存数据反序列化失败视为未命中，回源数据库
-                    log.warn("商品缓存反序列化失败, id={}", id, e);
-                    missIds.add(id);
                 }
             }
-        } catch (RuntimeException e) {
-            // Redis 不可用时降级为全量回源数据库
-            log.warn("读取商品缓存失败，降级为数据库查询", e);
-            missIds = new ArrayList<>(ids);
-            cachedMap.clear();
         }
 
         // 2. 未命中的 id 去数据库查询并组装
@@ -150,16 +109,7 @@ public class ProductServiceImpl implements ProductService {
             // 3. 将未命中的 products 写回 redis 缓存
             for (Product product : dbProducts) {
                 cachedMap.put(product.getId(), product);
-                try {
-                    redisTemplate.opsForValue().set(
-                            PRODUCT_KEY_PREFIX + product.getId(),
-                            mapper.writeValueAsString(product),
-                            PRODUCT_CACHE_EXPIRE_TIME,
-                            TimeUnit.SECONDS);
-                } catch (JsonProcessingException | RuntimeException e) {
-                    // 序列化或写入失败时仅跳过缓存，不影响本次返回
-                    log.warn("商品写入缓存失败, id={}", product.getId(), e);
-                }
+                cacheService.setProduct(product);
             }
         }
 
