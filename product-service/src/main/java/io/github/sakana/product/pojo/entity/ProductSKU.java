@@ -10,4 +10,5 @@ public class ProductSKU extends UpdatableEntity {
     private String skuCode;
     private Long price;
     private Integer status;
+    private Integer productStatus;  // 冗余商品上下架状态，与 product.status 保持一致
 }

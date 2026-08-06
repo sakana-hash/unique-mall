@@ -65,13 +65,13 @@ public class ProductBundleGenerator {
         product.setCreatedTime(created);
         product.setUpdatedTime(updated);
 
-        return new Bundle(product, buildSkus(idGen, rnd, productId, created),
+        return new Bundle(product, buildSkus(idGen, rnd, productId, created, product.getStatus()),
                 props.isDetailEnabled() ? buildDetail(idGen, productId, name, brand, created, updated) : null,
                 buildImages(idGen, rnd, productId, created));
     }
 
     private List<ProductSKU> buildSkus(LongSupplier idGen, ThreadLocalRandom rnd,
-                                       long productId, LocalDateTime productCreated) {
+                                       long productId, LocalDateTime productCreated, Integer productStatus) {
         int count = rnd.nextInt(props.getSkuPerProductMin(), props.getSkuPerProductMax() + 1);
         // 基准价 9.9 ~ 19999 元（单位：分），平方分布偏向低价
         long basePrice = 990L + (long) (Math.pow(rnd.nextDouble(), 2.0) * 1_998_911);
@@ -87,6 +87,8 @@ public class ProductBundleGenerator {
             // 每个规格比上一个贵 8%
             sku.setPrice(basePrice * (100L + 8L * i) / 100);
             sku.setStatus(rnd.nextInt(10) < 9 ? 1 : 0);
+            // product_status 与商品上下架状态保持一致，供价格排序查询过滤使用
+            sku.setProductStatus(productStatus);
             sku.setCreatedTime(skuCreated);
             sku.setUpdatedTime(clamp(skuCreated.plusSeconds(rnd.nextLong(0, 15 * DAY_SECONDS))));
             skus.add(sku);
