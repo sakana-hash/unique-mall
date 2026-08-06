@@ -1,10 +1,13 @@
 package io.github.sakana.product.pojo.entity;
 
 import io.github.sakana.common.entity.UpdatableEntity;
-import io.github.sakana.product.pojo.vo.ProductPageVO;
+import io.github.sakana.product.pojo.vo.ProductDetailVO;
+import io.github.sakana.product.pojo.vo.ProductVO;
 import lombok.Data;
+import org.springframework.beans.BeanUtils;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 public class Product extends UpdatableEntity {
@@ -20,8 +23,8 @@ public class Product extends UpdatableEntity {
     private List<ProductImage> images;
     private List<ProductSKU> skus;
 
-    public ProductPageVO toPageVO() {
-        ProductPageVO vo = new ProductPageVO();
+    public ProductVO toPageVO() {
+        ProductVO vo = new ProductVO();
         vo.setProductId(getId());
         vo.setName(getName());
         vo.setMainImage(images.stream()
@@ -30,6 +33,18 @@ public class Product extends UpdatableEntity {
                 .findFirst()
                 .orElse(null)
         );
+        vo.setMinPrice(skus.stream()
+                .map(ProductSKU::getPrice)
+                .min(Long::compareTo)
+                .orElse(null));
+        return vo;
+    }
+
+    public ProductDetailVO toDetailVO() {
+        ProductDetailVO vo = new ProductDetailVO();
+        vo.setImages(images.stream().map(ProductImage::toVO).collect(Collectors.toList()));
+        vo.setSkus(skus.stream().map(ProductSKU::toVO).collect(Collectors.toList()));
+        BeanUtils.copyProperties(this, vo);
         vo.setMinPrice(skus.stream()
                 .map(ProductSKU::getPrice)
                 .min(Long::compareTo)

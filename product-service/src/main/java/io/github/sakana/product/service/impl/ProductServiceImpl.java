@@ -9,7 +9,7 @@ import io.github.sakana.product.pojo.PageQuery;
 import io.github.sakana.product.pojo.dto.ProductPageDTO;
 import io.github.sakana.product.pojo.entity.*;
 import io.github.sakana.product.pojo.vo.PageVO;
-import io.github.sakana.product.pojo.vo.ProductPageVO;
+import io.github.sakana.product.pojo.vo.ProductVO;
 import io.github.sakana.product.service.CacheService;
 import io.github.sakana.product.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +37,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public PageVO<ProductPageVO> page(ProductPageDTO pageDTO) {
+    public PageVO<ProductVO> page(ProductPageDTO pageDTO) {
         Integer page = pageDTO.getPage();
         Integer size = pageDTO.getSize();
         Long categoryId = pageDTO.getCategoryId();
@@ -65,10 +65,43 @@ public class ProductServiceImpl implements ProductService {
         }
 
         List<Product> products = batchGetDetails(result.getIds());
-        List<ProductPageVO> productPageVOS = products.stream()
+        List<ProductVO> productVOS = products.stream()
                 .map(Product::toPageVO)
                 .collect(Collectors.toList());
-        return new PageVO<>(productPageVOS, result.getTotal(), page, size, (result.getTotal() + size - 1) / size);
+
+        Long pages = (result.getTotal() + size - 1) / size; // 总页数
+        return new PageVO<>(productVOS, result.getTotal(), page, size, pages);
+    }
+
+    @Override
+    public Product getDetail(Long id) {
+        if (id == null || id <= 0) {
+            throw new RuntimeException(String.format(
+                    "无效的商品id: %d", id
+            ));
+        }
+
+        Product product = cacheService.getProduct(id);
+        if (product != null) {
+            return product;
+        }
+
+        product = productMapper.selectById(id);
+        if (product == null || product.getStatus() != 1) {
+            throw new RuntimeException(String.format(
+                    "商品不存在: %d", id
+            ));
+        }
+
+        ProductDetail detail = detailMapper.selectByProductId(id);
+        if (detail != null) {
+            product.setContent(detail.getContent());
+        }
+        product.setImages(imageMapper.selectByProductId(id));
+        product.setSkus(skuMapper.selectByProductId(id));
+
+        cacheService.setProduct(product);
+        return product;
     }
 
     /**

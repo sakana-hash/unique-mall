@@ -79,7 +79,7 @@ public class CacheService {
     }
 
     public String buildProductKey(Long id) {
-        return PRODUCT_KEY_PREFIX + id;
+        return PRODUCT_KEY_PREFIX + ":" + id;
     }
 
     public Product getProduct(Long id) {
@@ -96,7 +96,14 @@ public class CacheService {
         }
 
         try {
-            return mapper.readValue(json, Product.class);
+            Product product = mapper.readValue(json, Product.class);
+            if (product.getImages() == null) {
+                product.setImages(Collections.emptyList());
+            }
+            if (product.getSkus() == null) {
+                product.setSkus(Collections.emptyList());
+            }
+            return product;
         } catch (JsonProcessingException e) {
             log.warn("商品缓存反序列化失败", e);
         }
