@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.sakana.mockdata.mapper.MockProductCategoryMapper">
+
+    <insert id="batchInsert">
+        insert into `product`.`product_category`
+            (`id`, `parent_id`, `name`, `level`, `status`, `created_time`, `updated_time`)
+        values
+        <foreach collection="list" item="it" separator=",">
+            (#{it.id}, #{it.parentId}, #{it.name}, #{it.level}, #{it.status},
+             #{it.createdTime}, #{it.updatedTime})
+        </foreach>
+    </insert>
+
+    <update id="truncate">
+        truncate table `product`.`product_category`
+    </update>
+
+</mapper>

@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 批量导入调优参数：
+    #   cachePrepStmts / prepStmtCacheSqlLimit: 多行 VALUES 语句较长，需要放大预处理语句缓存上限才能命中缓存
+    #   rewriteBatchedStatements: 批量写优化兜底
+    url: jdbc:mysql://localhost:3306/product?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true&cachePrepStmts=true&prepStmtCacheSize=256&prepStmtCacheSqlLimit=20480
+    username: root
+    # 密码敏感，不写入仓库，请通过 --spring.datasource.password 启动参数提供
+    hikari:
+      maximum-pool-size: 16
+      minimum-idle: 4
+      connection-timeout: 30000
+
+# 雪花ID生成器（unique-spring-boot-starter 自动装配）
+# worker-id 与 product-service 运行实例(11)错开，保证 mock 数据与线上数据 ID 不重叠
+unique-mall:
+  snowflake:
+    datacenter-id: 1
+    worker-id: 21
+
+mybatis:
+  mapper-locations: classpath*:mapper/Mock*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+mock:
+  batch-size: 2000          # 单条 INSERT 的行数，可调：--mock.batch-size=2000
+  threads: 16                # 并行线程数
+  truncate-first: false     # 插入前清空目标表（慎用）
+  dry-run: false            # true 时只生成不写库
+  product-count: 10000    # 商品目标量 100 万
+  sku-per-product-min: 2    # 每商品 2~4 个 SKU，平均 3 个 => 约 300 万 SKU
+  sku-per-product-max: 4
+  detail-enabled: true      # 商品详情与商品 1:1
+  image-per-product-min: 2  # 每商品 2~4 张图（1 主图 + 详情图）
+  image-per-product-max: 4
+  category-level1-count: 12
+  category-level2-per-level1: 8
+  created-within-days: 730  # created_time 分布在最近 2 年
