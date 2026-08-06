@@ -9,6 +9,14 @@
                 select product_id
                 from product.product_sku
                 where product_status = 1 and status = 1
+                <if test="categoryId != null">
+                    and product_id in (
+                        select id
+                        from product.product
+                        where product.status = 1
+                            category_id = #{categoryId}
+                    )
+                </if>
                 group by product_id
                 order by min(price) desc
                 limit #{offset}, #{size}
@@ -17,6 +25,14 @@
                 select product_id
                 from product.product_sku
                 where product_status = 1 and status = 1
+                <if test="categoryId != null">
+                    and product_id in (
+                    select id
+                    from product.product
+                    where product.status = 1
+                        category_id = #{categoryId}
+                    )
+                </if>
                 group by product_id
                 order by min(price)
                 limit #{offset}, #{size}
@@ -25,6 +41,9 @@
                 select id
                 from product.product
                 where status = 1
+                <if test="categoryId != null">
+                    and category_id = #{categoryId}
+                </if>
                 order by created_time desc
                 limit #{offset}, #{size}
             </otherwise>

@@ -38,3 +38,23 @@ limit
 
 考虑价格可能频繁变动，而商品上下架的频率不大，500ms延迟勉强可以接受，方案2胜出
 
+### 注意目前方案2的实现在需要筛选categoryId时
+```mysql
+select product_id
+from product.product_sku
+where product_status = 1 and status = 1
+and product_id in (
+    select id
+    from product.product
+    where product.status = 1
+        and product.category_id = 873196437515751515
+)
+group by product_id
+order by min(price)
+limit 0, 40;
+```
+
+由于categoryId只在product表中，需要做一次子查询   
+当前最大的catagory的product在1w左右，in操作不会影响性能   
+(反而因为筛选了记录数可以加快group by聚合，查询时间从500下降到60)
+如果单个catagory的product继续增大，in操作会拖垮整个查询性能
