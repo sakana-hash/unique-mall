@@ -1,6 +1,6 @@
 package io.github.sakana.product.enumeration;
 
-public enum ProductSort {
+public enum PageSort {
 
     /**
      * 综合排序

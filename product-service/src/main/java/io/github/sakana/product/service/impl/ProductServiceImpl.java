@@ -4,15 +4,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.github.sakana.product.enumeration.PageSort;
 import io.github.sakana.product.mapper.ProductDetailMapper;
 import io.github.sakana.product.mapper.ProductImageMapper;
 import io.github.sakana.product.mapper.ProductMapper;
 import io.github.sakana.product.mapper.ProductSKUMapper;
-import io.github.sakana.product.pojo.ProductPageQuery;
+import io.github.sakana.product.pojo.PageQuery;
 import io.github.sakana.product.pojo.dto.ProductPageDTO;
 import io.github.sakana.product.pojo.entity.*;
 import io.github.sakana.product.pojo.vo.PageVO;
 import io.github.sakana.product.pojo.vo.ProductPageVO;
+import io.github.sakana.product.service.CacheService;
 import io.github.sakana.product.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +40,8 @@ public class ProductServiceImpl implements ProductService {
     private ProductImageMapper imageMapper;
     @Autowired
     private StringRedisTemplate redisTemplate;
+    @Autowired
+    private CacheService cacheService;
 
     private static final ObjectMapper mapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -53,6 +57,7 @@ public class ProductServiceImpl implements ProductService {
         Integer page = pageDTO.getPage();
         Integer size = pageDTO.getSize();
         Long categoryId = pageDTO.getCategoryId();
+        PageSort sort = pageDTO.getSort();
         if (page == null || page < 1) {
             page = 1;
         }
@@ -66,57 +71,25 @@ public class ProductServiceImpl implements ProductService {
                     "无效的categoryId: %d", categoryId
             ));
         }
-        String pageResultKey = PAGE_RESULT_KEY_PREFIX + page + ":size:" + size
-                + ":sort:" + pageDTO.getSort();
-        if (categoryId != null) {
-            pageResultKey += ":category:" + categoryId;
+
+        String pageResultKey = cacheService.buildPageResultKey(page, size, categoryId, sort);
+        PageResult result = cacheService.getPageResult(pageResultKey);
+        if (result == null) {
+            PageQuery query = new PageQuery((page - 1) * size, size, categoryId, sort);
+            result = new PageResult(productMapper.selectPage(query), productMapper.count(query));
+            cacheService.setPageResult(pageResultKey, result);
         }
 
-        PageResult pageResult = null;
-        try {
-            String json = redisTemplate.opsForValue().get(pageResultKey);
-            if (json != null) {
-                pageResult = mapper.readValue(json, PageResult.class);
-            }
-        } catch (JsonProcessingException e) {
-            // 缓存数据反序列化失败视为未命中，回源数据库
-            log.warn("分页结果缓存反序列化失败", e);
-        } catch (RuntimeException e) {
-            // Redis 不可用时降级为直接查库
-            log.warn("读取分页结果缓存失败，降级为数据库查询", e);
-        }
-
-        if (pageResult == null || pageResult.getIds() == null || pageResult.getTotal() == null) {
-            ProductPageQuery query = new ProductPageQuery();
-            query.setOffset((page - 1) * size);
-            query.setSize(size);
-            query.setCategoryId(pageDTO.getCategoryId());
-            query.setSort(pageDTO.getSort());
-
-            pageResult = new PageResult();
-            pageResult.setIds(productMapper.selectPage(query));
-            pageResult.setTotal(productMapper.count(query));
-            try {
-                redisTemplate.opsForValue().set(pageResultKey,
-                        mapper.writeValueAsString(pageResult),
-                        PAGE_RESULT_CACHE_EXPIRE_TIME, TimeUnit.SECONDS);
-            } catch (JsonProcessingException | RuntimeException e) {
-                // 序列化或写入失败时仅跳过缓存，不影响本次返回
-                log.warn("分页结果写入缓存失败", e);
-            }
-        }
-
-
-        List<Product> products = batchGetDetails(pageResult.getIds());
+        List<Product> products = batchGetDetails(result.getIds());
         List<ProductPageVO> productPageVOS = products.stream()
                 .map(Product::toPageVO)
                 .collect(Collectors.toList());
         PageVO<ProductPageVO> pageVO = new PageVO<>();
         pageVO.setItems(productPageVOS);
-        pageVO.setTotal(pageResult.getTotal());
+        pageVO.setTotal(result.getTotal());
         pageVO.setPage(page);
         pageVO.setSize(size);
-        pageVO.setPages((pageResult.getTotal() + size - 1) / size);
+        pageVO.setPages((result.getTotal() + size - 1) / size);
         return pageVO;
     }
 

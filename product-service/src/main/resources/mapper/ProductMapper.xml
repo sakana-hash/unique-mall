@@ -5,7 +5,7 @@
 
     <select id="selectPage" resultType="java.lang.Long">
         <choose>
-            <when test="sort == @io.github.sakana.product.enumeration.ProductSort@PRICE_DESC">
+            <when test="sort == @io.github.sakana.product.enumeration.PageSort@PRICE_DESC">
                 select product_id
                 from product.product_sku
                 where product_status = 1 and status = 1
@@ -21,7 +21,7 @@
                 order by min(price) desc
                 limit #{offset}, #{size}
             </when>
-            <when test="sort == @io.github.sakana.product.enumeration.ProductSort@PRICE_ASC">
+            <when test="sort == @io.github.sakana.product.enumeration.PageSort@PRICE_ASC">
                 select product_id
                 from product.product_sku
                 where product_status = 1 and status = 1
