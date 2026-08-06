@@ -4,40 +4,31 @@
 <mapper namespace="io.github.sakana.product.mapper.ProductMapper">
 
     <select id="selectPage" resultType="java.lang.Long">
-        select
-            p.id
-        from product.product p
-
-        left join product.product_sku ps
-        on p.id = ps.product_id
-
-        where p.status = 1
-
-        <if test="categoryId != null">
-            and p.category_id = #{categoryId}
-        </if>
-
-        group by
-            p.id,
-            p.created_time
-
         <choose>
-
-            <when test="sort == @io.github.sakana.product.enumeration.ProductSort@PRICE_ASC">
-                order by min(ps.price)
-            </when>
-
             <when test="sort == @io.github.sakana.product.enumeration.ProductSort@PRICE_DESC">
-                order by min(ps.price) desc
+                select product_id
+                from product.product_sku
+                where product_status = 1 and status = 1
+                group by product_id
+                order by min(price) desc
+                limit #{offset}, #{size}
             </when>
-
+            <when test="sort == @io.github.sakana.product.enumeration.ProductSort@PRICE_ASC">
+                select product_id
+                from product.product_sku
+                where product_status = 1 and status = 1
+                group by product_id
+                order by min(price)
+                limit #{offset}, #{size}
+            </when>
             <otherwise>
-                order by p.created_time desc
+                select id
+                from product.product
+                where status = 1
+                order by created_time desc
+                limit #{offset}, #{size}
             </otherwise>
-
         </choose>
-
-        limit #{offset}, #{size}
     </select>
 
     <select id="count" resultType="java.lang.Long">

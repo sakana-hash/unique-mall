@@ -12,3 +12,6 @@ create table `product`.`product`
 
     index idx_category(category_id)
 );
+
+create index idx_status_created
+    on product.product (status, created_time);

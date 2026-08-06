@@ -1,7 +1,7 @@
 package io.github.sakana.mockdata.generator;
 
 /**
- * Mock 数据词库（风格与 product-service 自带 mock_data.sql 保持一致）
+ * Mock 数据词库
  */
 public final class MockContent {
 

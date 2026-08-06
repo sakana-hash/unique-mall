@@ -119,7 +119,6 @@ public class ProductBundleGenerator {
             ProductImage image = new ProductImage();
             image.setId(idGen.getAsLong());
             image.setProductId(productId);
-            // 与 mock_data.sql 相同的图片 URL 风格
             image.setUrl(i == 0
                     ? "https://picsum.photos/seed/p" + productId + "m/800/800"
                     : "https://picsum.photos/seed/p" + productId + "d" + i + "/800/800");

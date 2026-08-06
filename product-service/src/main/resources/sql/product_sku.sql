@@ -10,4 +10,10 @@ create table `product`.`product_sku` (
 
     unique key uk_sku_code(sku_code),
     index idx_product(product_id)
-)
+);
+
+alter table product.product_sku
+    add product_status tinyint not null comment '状态 0下架 1上架';
+
+create index idx_product_status_price
+    on product.product_sku (product_status, status, product_id, price);
