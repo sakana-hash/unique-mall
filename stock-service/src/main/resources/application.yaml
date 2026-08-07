@@ -1,11 +1,11 @@
 server:
-  port: 8100
+  port: 8300
 
 spring:
   profiles:
     active: dev
   application:
-    name: user-service
+    name: stock-service
   cloud:
     nacos:
       discovery:
@@ -19,9 +19,6 @@ spring:
     password: ${unique-mall.datasource.password}
 
 unique-mall:
-  jwt:
-    secret-key: ${unique-mall.jwt.secret-key}
-    ttl: ${unique-mall.jwt.ttl}
   snowflake:
     datacenter-id: ${unique-mall.snowflake.datacenter-id}
     worker-id: ${unique-mall.snowflake.worker-id}
