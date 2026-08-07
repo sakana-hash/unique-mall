@@ -34,3 +34,7 @@ spring:
               uri: lb://product-service
               predicates:
                 - Path=/api/product/**
+            - id: stock-service
+              uri: lb://stock-service
+              predicates:
+                - Path=/api/stock/**

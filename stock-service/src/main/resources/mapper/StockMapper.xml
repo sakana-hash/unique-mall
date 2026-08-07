@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.github.sakana.stock.mapper.StockMapper">
+
+    <select id="selectBySkuIds" resultType="io.github.sakana.stock.pojo.entity.Stock">
+        select *
+        from stock.stock
+        where sku_id in
+        <foreach collection="skuIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+</mapper>
