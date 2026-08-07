@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Aspect
 @Component
@@ -36,9 +37,18 @@ public class AutoFillAspect {
             return;
         }
 
+        Object argument = args[0];
         LocalDateTime now = LocalDateTime.now();
-        if (args[0] instanceof UpdatableEntity) {
-            UpdatableEntity entity = (UpdatableEntity) args[0];
+        if (argument instanceof List<?> entities) {
+            entities.forEach(entity -> fillEntity(entity, operationType, now));
+            return;
+        }
+
+        fillEntity(argument, operationType, now);
+    }
+
+    private void fillEntity(Object argument, OperationType operationType, LocalDateTime now) {
+        if (argument instanceof UpdatableEntity entity) {
             if (operationType == OperationType.INSERT) {
                 if (entity.getId() == null) {
                     entity.setId(snowflakeIdGenerator.nextId());
@@ -48,8 +58,7 @@ public class AutoFillAspect {
             } else if (operationType == OperationType.UPDATE) {
                 entity.setUpdatedTime(now);
             }
-        } else if (args[0] instanceof BaseEntity) {
-            BaseEntity entity = (BaseEntity) args[0];
+        } else if (argument instanceof BaseEntity entity) {
             if (operationType == OperationType.INSERT) {
                 if (entity.getId() == null) {
                     entity.setId(snowflakeIdGenerator.nextId());

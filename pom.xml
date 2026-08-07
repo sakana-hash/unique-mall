@@ -18,6 +18,7 @@
         <module>order-service</module>
         <module>unique-spring-boot-starter</module>
         <module>mock-data-generator</module>
+        <module>stock-api</module>
     </modules>
 
     <properties>
@@ -30,7 +31,7 @@
 
         <common.version>1.0-SNAPSHOT</common.version>
         <unique-spring-starter.version>1.0-SNAPSHOT</unique-spring-starter.version>
-        <mybatis-spring-boot.version>3.0.5</mybatis-spring-boot.version>
+        <stock-api.version>1.0-SNAPSHOT</stock-api.version>
     </properties>
 
     <dependencyManagement>
@@ -72,9 +73,9 @@
             </dependency>
 
             <dependency>
-                <groupId>org.mybatis.spring.boot</groupId>
-                <artifactId>mybatis-spring-boot-starter</artifactId>
-                <version>${mybatis-spring-boot.version}</version>
+                <groupId>io.github.sakana-hash</groupId>
+                <artifactId>stock-api</artifactId>
+                <version>${stock-api.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
