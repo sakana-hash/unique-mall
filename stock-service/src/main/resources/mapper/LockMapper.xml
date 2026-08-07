@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.github.sakana.stock.mapper.LockMapper">
+    <insert id="batchInsert">
+        insert into stock.stock_lock
+            (id, sku_id, order_id, quantity, expire_time, created_time, updated_time)
+        values
+        <foreach collection="locks" item="lock" separator=",">
+            (#{lock.id}, #{lock.skuId}, #{lock.orderId}, #{lock.quantity}, #{lock.expireTime},
+             #{lock.createdTime}, #{lock.updatedTime})
+        </foreach>
+    </insert>
+</mapper>

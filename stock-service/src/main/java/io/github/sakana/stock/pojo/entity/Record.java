@@ -1,9 +1,15 @@
 package io.github.sakana.stock.pojo.entity;
 
 import io.github.sakana.common.entity.BaseEntity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Record extends BaseEntity {
 
     private Long skuId;

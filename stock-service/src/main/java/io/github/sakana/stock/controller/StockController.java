@@ -19,7 +19,7 @@ public class StockController {
     @Autowired
     private StockService stockService;
 
-    @PostMapping
+    @PostMapping("/batch")
     public Result<Map<Long, StockVO>> getStocks(@RequestBody GetStocksDTO stocksDTO) {
         Map<Long, Stock> map = stockService.getStockFromSkuIds(stocksDTO.getSkuIds());
         Map<Long, StockVO> data = map.entrySet().stream().map(

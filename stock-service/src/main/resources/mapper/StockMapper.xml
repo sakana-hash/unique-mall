@@ -2,6 +2,16 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="io.github.sakana.stock.mapper.StockMapper">
+    <update id="lockStock">
+        update stock.stock
+        set
+            available_stock = available_stock - #{quantity},
+            locked_stock = locked_stock + #{quantity},
+            updated_time = #{updatedTime}
+        where
+            sku_id = #{skuId}
+            and available_stock >= #{quantity}
+    </update>
 
     <select id="selectBySkuIds" resultType="io.github.sakana.stock.pojo.entity.Stock">
         select *
@@ -10,5 +20,14 @@
         <foreach collection="skuIds" item="id" open="(" close=")" separator=",">
             #{id}
         </foreach>
+    </select>
+    <select id="selectForUpdateBySkuIds" resultType="io.github.sakana.stock.pojo.entity.Stock">
+        select *
+        from stock.stock
+        where sku_id in
+        <foreach collection="skuIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        for update
     </select>
 </mapper>
