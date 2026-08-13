@@ -2,6 +2,7 @@ package io.github.sakana.api.client;
 
 import io.github.sakana.api.pojo.dto.StockConfirmRequestDTO;
 import io.github.sakana.api.pojo.dto.StockLockRequestDTO;
+import io.github.sakana.api.pojo.dto.StockReleaseRequestDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,5 +15,8 @@ public interface StockClient {
 
     @PostMapping("/internal/stock/confirm")
     boolean confirm(@RequestBody StockConfirmRequestDTO requestDTO);
+
+    @PostMapping("/internal/stock/release")
+    boolean release(@RequestBody StockReleaseRequestDTO requestDTO);
 
 }

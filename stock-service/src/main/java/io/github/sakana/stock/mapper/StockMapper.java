@@ -14,4 +14,5 @@ public interface StockMapper {
     List<Stock> selectForUpdateBySkuIds(@Param("skuIds") List<Long> skuIds);
     int lockStockBySkuId(@Param("skuId") Long skuId, @Param("quantity") Integer quantity, @Param("updatedTime")LocalDateTime updatedTime);
     int deductStockBySkuId(@Param("skuId")  Long skuId, @Param("quantity") Integer quantity, @Param("updatedTime")LocalDateTime updatedTime);
+    int releaseStockBySkuId(@Param("skuId") Long skuId, @Param("quantity") Integer quantity, @Param("updatedTime")LocalDateTime updatedTime);
 }

@@ -180,20 +180,7 @@ public class StockServiceImpl implements StockService {
         List<Lock> locks = lockMapper.selectForUpdateByOrderId(orderId);
 
         LocalDateTime now = LocalDateTime.now();
-        locks = locks.stream().filter(Objects::nonNull).peek(lock -> {
-            // 校验锁定的数量
-            checkQuantity(lock.getQuantity());
-
-            // 校验锁状态
-            if (lock.getStatus() != LockStatusConstant.LOCKER) {
-                throw new RuntimeException("锁已过期或已释放");
-            }
-
-            // 校验过期时间
-            if (now.isAfter(lock.getExpireTime())) {
-                throw new RuntimeException("锁已过期");
-            }
-        }).toList();
+        locks = checkLocks(locks, now);
 
         if (locks.isEmpty()) {
             throw new RuntimeException(String.format(
@@ -240,7 +227,102 @@ public class StockServiceImpl implements StockService {
         return true;
     }
 
-    private static boolean checkQuantity(Integer quantity) {
+    @Override
+    @Transactional
+    public boolean release(Long orderId) {
+        if (orderId == null) {
+            throw new RuntimeException("orderId不能为空");
+        }
+
+        List<Lock> locks = lockMapper.selectForUpdateByOrderId(orderId);
+
+        locks = checkLocks(locks);
+
+        if (locks.isEmpty()) {
+            throw new RuntimeException(String.format(
+                    "该订单没有锁定的库存, 订单号: %d",  orderId
+            ));
+        }
+
+        List<Long> skuIds = locks.stream().map(Lock::getSkuId).toList();
+        List<Stock> stocks = stockMapper.selectForUpdateBySkuIds(skuIds);
+        if (stocks.size() != skuIds.size()) {
+            throw new RuntimeException("部分 sku不存在");
+        }
+        Map<Long, Stock> stockMap = stocks.stream().collect(Collectors.toMap(Stock::getSkuId, Function.identity()));
+
+        LocalDateTime now = LocalDateTime.now();
+        for (Lock lock : locks) {
+            int rows = stockMapper.releaseStockBySkuId(lock.getSkuId(), lock.getQuantity(), now);
+            if (rows == 0) {
+                throw new RuntimeException("锁定库存释放失败, SkuId: " + lock.getSkuId());
+            }
+        }
+
+        int rows = lockMapper.updateStatusByOrderId(orderId, LockStatusConstant.RELEASED, now);
+        if (rows != locks.size()) {
+            throw new RuntimeException("部分锁状态更新失败");
+        }
+
+        List<Record> records = locks.stream().map(lock -> Record.builder()
+                        .skuId(lock.getSkuId())
+                        .orderId(orderId)
+                        .changeType(StockChangeType.RELEASE)
+                        .changeAmount(lock.getQuantity())
+                        .availableBefore(stockMap.get(lock.getSkuId()).getAvailableStock())
+                        .availableAfter(stockMap.get(lock.getSkuId()).getAvailableStock() + lock.getQuantity())
+                        .lockedBefore(stockMap.get(lock.getSkuId()).getLockedStock())
+                        .lockedAfter(stockMap.get(lock.getSkuId()).getLockedStock() - lock.getQuantity())
+                        .build())
+                .toList();
+
+        rows = recordMapper.batchInsert(records);
+        if (records.size() != rows) {
+            throw new RuntimeException("已存在日志流水记录，记录失败");
+        }
+
+        return true;
+    }
+
+    private static List<Lock> checkLocks(List<Lock> locks, LocalDateTime now) {
+        if (locks == null || locks.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return locks.stream().filter(Objects::nonNull).peek(lock -> {
+            // 校验锁定的数量
+            checkQuantity(lock.getQuantity());
+
+            // 校验锁状态
+            if (!Objects.equals(lock.getStatus(), LockStatusConstant.LOCKER)) {
+                throw new RuntimeException("锁已过期或已释放");
+            }
+
+            // 校验过期时间
+            if (now.isAfter(lock.getExpireTime())) {
+                throw new RuntimeException("锁已过期");
+            }
+        }).toList();
+    }
+
+    private static List<Lock> checkLocks(List<Lock> locks) {
+        if (locks == null || locks.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return locks.stream().filter(Objects::nonNull).peek(lock -> {
+            // 校验锁定的数量
+            checkQuantity(lock.getQuantity());
+
+            // 校验锁状态
+            if (!Objects.equals(lock.getStatus(), LockStatusConstant.LOCKER)) {
+                throw new RuntimeException("锁已过期或已释放");
+            }
+
+        }).toList();
+    }
+
+    private static Integer checkQuantity(Integer quantity) {
         if (quantity == null) {
             throw new RuntimeException("数量不能为空");
         }
@@ -250,6 +332,6 @@ public class StockServiceImpl implements StockService {
         if (quantity > 999) {
             throw new RuntimeException("数量不能超过999");
         }
-        return true;
+        return quantity;
     }
 }

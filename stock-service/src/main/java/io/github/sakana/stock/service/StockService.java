@@ -11,4 +11,5 @@ public interface StockService {
     Map<Long, Stock> getStockFromSkuIds(List<Long> ids);
     boolean batchLock(StockLockRequestDTO requestDTO);
     boolean confirmOrder(Long orderId);
+    boolean release(Long orderId);
 }

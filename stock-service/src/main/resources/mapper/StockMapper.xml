@@ -22,6 +22,16 @@
             sku_id = #{skuId}
             and locked_stock >= #{quantity}
     </update>
+    <update id="releaseStockBySkuId">
+        update stock.stock
+        set
+            available_stock = available_stock + #{quantity},
+            locked_stock = locked_stock - #{quantity},
+            updated_time = #{updatedTime}
+        where
+            sku_id = #{skuId}
+            and locked_stock >= #{quantity}
+    </update>
 
     <select id="selectBySkuIds" resultType="io.github.sakana.stock.pojo.entity.Stock">
         select *
