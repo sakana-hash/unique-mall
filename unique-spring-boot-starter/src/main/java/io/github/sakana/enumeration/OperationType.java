@@ -1,4 +1,4 @@
-package io.github.sakana.common.enumeration;
+package io.github.sakana.enumeration;
 
 public enum OperationType {
 

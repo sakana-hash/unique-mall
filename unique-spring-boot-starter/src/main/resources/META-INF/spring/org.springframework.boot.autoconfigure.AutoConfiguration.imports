@@ -1,2 +1,3 @@
 io.github.sakana.config.SnowflakeIdAutoConfiguration
 io.github.sakana.config.AutoFillAutoConfiguration
+io.github.sakana.config.FeignHeaderAutoConfiguration

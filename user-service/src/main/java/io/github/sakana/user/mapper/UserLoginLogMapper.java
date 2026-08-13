@@ -1,7 +1,7 @@
 package io.github.sakana.user.mapper;
 
 import io.github.sakana.annotation.AutoFill;
-import io.github.sakana.common.enumeration.OperationType;
+import io.github.sakana.enumeration.OperationType;
 import io.github.sakana.user.pojo.entity.UserLoginLog;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;

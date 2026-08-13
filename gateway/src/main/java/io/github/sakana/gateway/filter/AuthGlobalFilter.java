@@ -2,6 +2,7 @@ package io.github.sakana.gateway.filter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.sakana.common.constant.HeadersConstant;
 import io.github.sakana.common.properties.JWTProperty;
 import io.github.sakana.common.result.Result;
 import io.github.sakana.common.utils.JWTUtil;
@@ -35,7 +36,7 @@ import java.nio.charset.StandardCharsets;
 public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String HEADER_USER_ID = "X-User-Id";
+    private static final String HEADER_USER_ID = HeadersConstant.USER_ID;
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 

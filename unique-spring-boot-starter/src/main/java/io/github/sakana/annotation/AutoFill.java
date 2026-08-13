@@ -1,6 +1,6 @@
 package io.github.sakana.annotation;
 
-import io.github.sakana.common.enumeration.OperationType;
+import io.github.sakana.enumeration.OperationType;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
