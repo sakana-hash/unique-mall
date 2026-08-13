@@ -1,9 +1,7 @@
 package io.github.sakana.stock.controller;
 
+import io.github.sakana.api.pojo.dto.StockConfirmRequestDTO;
 import io.github.sakana.api.pojo.dto.StockLockRequestDTO;
-import io.github.sakana.api.pojo.dto.StockLockResponseDTO;
-import io.github.sakana.common.result.Result;
-import io.github.sakana.stock.pojo.entity.Lock;
 import io.github.sakana.stock.service.StockService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,5 +20,11 @@ public class InternalController {
     public boolean lock(@RequestBody StockLockRequestDTO requestDTO) {
         boolean isSuccess = stockService.batchLock(requestDTO);
         return isSuccess;
-    };
+    }
+
+    @PostMapping("/confirm")
+    public boolean confirm(@RequestBody StockConfirmRequestDTO requestDTO) {
+        boolean isSuccess = stockService.confirmOrder(requestDTO.getOrderId());
+        return isSuccess;
+    }
 }

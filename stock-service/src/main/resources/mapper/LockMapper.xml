@@ -11,4 +11,16 @@
              #{lock.createdTime}, #{lock.updatedTime})
         </foreach>
     </insert>
+    <update id="updateStatusByOrderId">
+        update stock.stock_lock
+        set status = #{status},
+            updated_time = #{updatedTime}
+        where order_id = #{orderId}
+    </update>
+    <select id="selectForUpdateByOrderId" resultType="io.github.sakana.stock.pojo.entity.Lock">
+        select *
+        from stock.stock_lock
+        where order_id = #{orderId}
+        for update
+    </select>
 </mapper>

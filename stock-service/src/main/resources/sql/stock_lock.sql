@@ -6,7 +6,7 @@ create table stock.stock_lock (
     order_id bigint not null,
     quantity int not null comment '下单数量',
     status tinyint not null default 0 comment '状态 0锁定 1已扣减 2已释放',
-    expire_time datetime comment '锁过期时间',
+    expire_time datetime not null comment '锁过期时间',
 
     created_time datetime not null ,
     updated_time datetime not null ,

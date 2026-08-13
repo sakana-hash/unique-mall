@@ -16,6 +16,10 @@ public class Record extends BaseEntity {
     private Long orderId;
     private Integer changeType; // 流水类型 1初始化库存 2锁定库存 3扣减库存 4释放库存 5人工调整
     private Integer changeAmount;
-    private Integer beforeStock;
-    private Integer afterStock;
+
+    private Integer availableBefore;
+    private Integer availableAfter;
+
+    private Integer lockedBefore;
+    private Integer lockedAfter;
 }

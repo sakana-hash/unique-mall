@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.github.sakana.stock.mapper.RecordMapper">
+    <insert id="batchInsert">
+        insert into stock.stock_record
+        (id, sku_id, order_id, change_type, change_amount, available_before, available_after,
+         locked_before, locked_after, created_time)
+        values
+        <foreach collection="records" item="record" separator=",">
+            (#{record.id}, #{record.skuId}, #{record.orderId}, #{record.changeType}, #{record.changeAmount},
+            #{record.availableBefore}, #{record.availableAfter}, #{record.lockedBefore}, #{record.lockedAfter}, #{record.createdTime})
+        </foreach>
+    </insert>
+</mapper>

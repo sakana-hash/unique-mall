@@ -6,6 +6,7 @@ import io.github.sakana.stock.pojo.entity.Lock;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -13,4 +14,6 @@ public interface LockMapper {
 
     @AutoFill(OperationType.INSERT)
     int batchInsert(@Param("locks") List<Lock> locks);
+    List<Lock> selectForUpdateByOrderId(@Param("orderId") Long orderId);
+    int updateStatusByOrderId(@Param("orderId") Long orderId, @Param("status") Integer status, @Param("updatedTime") LocalDateTime updatedTime);
 }
