@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.sakana.order.mapper.ItemMapper">
+
+    <insert id="batchInsert">
+        insert into orders.order_item
+            (id, order_id, sku_id, product_id, product_name, sku_code, image_url,
+             price, quantity, amount, created_time)
+        values
+        <foreach collection="items" item="item" separator=",">
+            (#{item.id}, #{item.orderId}, #{item.skuId}, #{item.productId}, #{item.productName},
+             #{item.skuCode}, #{item.imageUrl}, #{item.price}, #{item.quantity}, #{item.amount},
+             #{item.createdTime})
+        </foreach>
+    </insert>
+
+</mapper>

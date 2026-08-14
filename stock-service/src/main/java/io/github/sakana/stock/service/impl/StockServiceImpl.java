@@ -236,13 +236,16 @@ public class StockServiceImpl implements StockService {
 
         List<Lock> locks = lockMapper.selectForUpdateByOrderId(orderId);
 
-        locks = checkLocks(locks);
-
-        if (locks.isEmpty()) {
-            throw new RuntimeException(String.format(
-                    "该订单没有锁定的库存, 订单号: %d",  orderId
-            ));
+        // TODO 锁库存调用结果未知时，释放请求可能早于锁事务提交；需引入订单级操作状态或延迟重试消除竞态。
+        // 释放接口保持幂等：无锁记录或已经全部释放，都视为释放成功。
+        if (locks == null || locks.isEmpty()
+                || locks.stream().allMatch(lock -> Objects.equals(
+                        lock.getStatus(), LockStatusConstant.RELEASED
+                ))) {
+            return true;
         }
+
+        locks = checkLocks(locks);
 
         List<Long> skuIds = locks.stream().map(Lock::getSkuId).toList();
         List<Stock> stocks = stockMapper.selectForUpdateBySkuIds(skuIds);

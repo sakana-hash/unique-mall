@@ -37,4 +37,8 @@ public class Result<T> implements Serializable {
         return result;
     }
 
+    public boolean isSuccess() {
+        return code == 0;
+    }
+
 }

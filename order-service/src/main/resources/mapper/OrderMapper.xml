@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.sakana.order.mapper.OrderMapper">
+
+    <insert id="insert">
+        insert into orders.orders
+            (id, order_no, user_id, total_amount, pay_amount, status, remark, expire_time,
+             paid_time, cancelled_time, completed_time, created_time, updated_time)
+        values
+            (#{id}, #{orderNo}, #{userId}, #{totalAmount}, #{payAmount}, #{status}, #{remark}, #{expireTime},
+             #{paidTime}, #{cancelledTime}, #{completedTime}, #{createdTime}, #{updatedTime})
+    </insert>
+
+</mapper>

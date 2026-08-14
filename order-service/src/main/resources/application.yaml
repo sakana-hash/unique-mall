@@ -1,0 +1,29 @@
+server:
+  port: 8400
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: order-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${unique-mall.nacos.host}:${unique-mall.nacos.port}
+      username: ${unique-mall.nacos.username}
+      password: ${unique-mall.nacos.password}
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${unique-mall.datasource.host}:${unique-mall.datasource.port}/${unique-mall.datasource.database}
+    username: ${unique-mall.datasource.username}
+    password: ${unique-mall.datasource.password}
+
+unique-mall:
+  snowflake:
+    datacenter-id: ${unique-mall.snowflake.datacenter-id}
+    worker-id: ${unique-mall.snowflake.worker-id}
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+  mapper-locations: classpath:mapper/*.xml

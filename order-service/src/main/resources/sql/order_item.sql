@@ -2,6 +2,7 @@ create table orders.order_item
 (
 
     id           bigint primary key comment '订单明细id',
+
     order_id     bigint       not null comment '订单id',
     sku_id       bigint       not null comment 'sku id',
     product_id   bigint       not null comment '商品id',

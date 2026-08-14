@@ -112,7 +112,7 @@ public class CacheService {
 
     public List<Product> getProducts(List<Long> ids) {
         List<String> keys = ids.stream()
-                .map(id -> PRODUCT_KEY_PREFIX + id)
+                .map(id -> PRODUCT_KEY_PREFIX + ":" + id)
                 .collect(Collectors.toList());
         List<String> jsons;
         try {

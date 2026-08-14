@@ -2,6 +2,7 @@ create table orders.order_address
 (
 
     id           bigint primary key comment '订单地址id',
+
     order_id     bigint       not null comment '订单id',
     receiver     varchar(64)  not null comment '收货人',
     phone        varchar(20)  not null comment '联系电话',

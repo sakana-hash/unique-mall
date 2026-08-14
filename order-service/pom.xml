@@ -17,4 +17,25 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.github.sakana-hash</groupId>
+            <artifactId>unique-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.sakana-hash</groupId>
+            <artifactId>product-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.sakana-hash</groupId>
+            <artifactId>stock-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.sakana-hash</groupId>
+            <artifactId>user-api</artifactId>
+        </dependency>
+    </dependencies>
 </project>

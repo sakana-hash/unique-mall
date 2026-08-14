@@ -203,6 +203,11 @@ public class ProductServiceImpl implements ProductService {
         if (skuIds == null || skuIds.isEmpty()) {
             return new ArrayList<>();
         }
+        if (skuIds.size() > 50) {
+            throw new RuntimeException(String.format(
+                    "sku查询项不能超过50, 当前数目: %d", skuIds.size()
+            ));
+        }
 
         Set<Long> uniqueSkuIds = new HashSet<>();
         for (Long skuId : skuIds) {
@@ -224,16 +229,8 @@ public class ProductServiceImpl implements ProductService {
         Map<Long, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
 
         List<Long> unavailableSkuIds = productSKUS.stream()
-                .filter(sku -> {
-                    Product product = productMap.get(sku.getProductId());
-                    if (product == null) {
-                        throw new RuntimeException(
-                                "不合法的数据库状态: sku关联的商品不存在, skuId: " + sku.getId()
-                        );
-                    }
-                    return !OnSaleType.ONSALE.equals(product.getStatus())
-                            || !OnSaleType.ONSALE.equals(sku.getStatus());
-                })
+                .filter(sku -> !OnSaleType.ONSALE.equals(sku.getProductStatus())
+                        || !OnSaleType.ONSALE.equals(sku.getStatus()))
                 .map(ProductSKU::getId)
                 .toList();
         if (!unavailableSkuIds.isEmpty()) {
@@ -242,6 +239,11 @@ public class ProductServiceImpl implements ProductService {
 
         productSKUS = productSKUS.stream().map(sku -> {
             Product product = productMap.get(sku.getProductId());
+            if (product == null) {
+                throw new RuntimeException(
+                        "不合法的数据库状态: sku关联的商品不存在, skuId: " + sku.getId()
+                );
+            }
 
             String mainImageUrl = Optional.ofNullable(product.getImages())
                     .orElseGet(Collections::emptyList)
