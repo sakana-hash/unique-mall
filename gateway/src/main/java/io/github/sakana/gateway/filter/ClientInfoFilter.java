@@ -65,6 +65,7 @@ public class ClientInfoFilter implements GlobalFilter, Ordered {
             return ip;
         }
 
+        // todo nginx没有覆写X-Forwarded-For，攻击者可以伪造X-Forwarded-For进行攻击
         String forwardedFor = headers.getFirst("X-Forwarded-For");
         if (forwardedFor != null) {
             // 形如 "客户端, 代理1, 代理2"，取第一个非 unknown 的段
