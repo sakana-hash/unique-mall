@@ -1,5 +1,7 @@
 package io.github.sakana.product.service.impl;
 
+import io.github.sakana.product.constant.ImageType;
+import io.github.sakana.product.constant.OnSaleType;
 import io.github.sakana.product.enumeration.PageSort;
 import io.github.sakana.product.mapper.ProductDetailMapper;
 import io.github.sakana.product.mapper.ProductImageMapper;
@@ -87,6 +89,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         product = productMapper.selectById(id);
+        // todo 防止缓存击穿
         if (product == null || product.getStatus() != 1) {
             throw new RuntimeException(String.format(
                     "商品不存在: %d", id
@@ -196,4 +199,66 @@ public class ProductServiceImpl implements ProductService {
         return result;
     }
 
+    public List<ProductSKU> getSkuTradeInfo(List<Long> skuIds) {
+        if (skuIds == null || skuIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Set<Long> uniqueSkuIds = new HashSet<>();
+        for (Long skuId : skuIds) {
+            if (!uniqueSkuIds.add(skuId)) {
+                throw new RuntimeException(String.format("sku id不能重复: %d", skuId));
+            }
+        }
+
+        List<ProductSKU> productSKUS = skuMapper.selectByIds(skuIds);
+        if (productSKUS.size() != skuIds.size()) {
+            throw new RuntimeException("部分sku不存在");
+        }
+
+        List<Long> productIds = productSKUS.stream()
+                .map(ProductSKU::getProductId)
+                .distinct()
+                .toList();
+        List<Product> products = batchGetDetails(productIds);
+        Map<Long, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
+
+        List<Long> unavailableSkuIds = productSKUS.stream()
+                .filter(sku -> {
+                    Product product = productMap.get(sku.getProductId());
+                    if (product == null) {
+                        throw new RuntimeException(
+                                "不合法的数据库状态: sku关联的商品不存在, skuId: " + sku.getId()
+                        );
+                    }
+                    return !OnSaleType.ONSALE.equals(product.getStatus())
+                            || !OnSaleType.ONSALE.equals(sku.getStatus());
+                })
+                .map(ProductSKU::getId)
+                .toList();
+        if (!unavailableSkuIds.isEmpty()) {
+            throw new RuntimeException("部分sku不可销售, skuIds: " + unavailableSkuIds);
+        }
+
+        productSKUS = productSKUS.stream().map(sku -> {
+            Product product = productMap.get(sku.getProductId());
+
+            String mainImageUrl = Optional.ofNullable(product.getImages())
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .filter(image -> ImageType.MAIN_IMAGE.equals(image.getType()))
+                    .map(ProductImage::getUrl)
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException(String.format(
+                            "不合法的数据库状态: 商品主图不存在, productId: %d, skuId: %d",
+                            product.getId(), sku.getId()
+                    )));
+
+            sku.setProductName(product.getName());
+            sku.setImageUrl(mainImageUrl);
+            return sku;
+        }).toList();
+
+        return productSKUS;
+    }
 }

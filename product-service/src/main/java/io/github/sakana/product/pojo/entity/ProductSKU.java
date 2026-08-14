@@ -13,6 +13,8 @@ public class ProductSKU extends UpdatableEntity {
     private Long price;
     private Integer status;
     private Integer productStatus;  // 冗余商品上下架状态，与 product.status 保持一致
+    private String productName;
+    private String imageUrl;
 
     public ProductSKUVO toVO() {
         ProductSKUVO vo = new ProductSKUVO();

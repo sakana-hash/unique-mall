@@ -10,4 +10,12 @@
             #{id}
         </foreach>
     </select>
+    <select id="selectByIds" resultType="io.github.sakana.product.pojo.entity.ProductSKU">
+        select *
+        from product.product_sku
+        where id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
 </mapper>

@@ -14,4 +14,6 @@ public interface ProductSKUMapper {
 
     @Select("select * from product.product_sku where product_id = #{id}")
     List<ProductSKU> selectByProductId(@Param("id") Long id);
+
+    List<ProductSKU> selectByIds(@Param("ids") List<Long> ids);
 }
