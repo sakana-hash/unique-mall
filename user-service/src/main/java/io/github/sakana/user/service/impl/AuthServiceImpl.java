@@ -20,9 +20,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.regex.Pattern;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MAX_PASSWORD_LENGTH = 64;
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile("[A-Za-z0-9_]+");
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -53,9 +58,7 @@ public class AuthServiceImpl implements AuthService {
             throw UserErrorCode.USERNAME_REQUIRED.exception();
         }
 
-        if (password == null || password.isBlank()) {
-            throw UserErrorCode.PASSWORD_REQUIRED.exception();
-        }
+        validatePassword(password);
 
         if (ip == null || ip.isBlank()) {
             throw UserErrorCode.CLIENT_IP_REQUIRED.exception();
@@ -101,9 +104,7 @@ public class AuthServiceImpl implements AuthService {
             throw UserErrorCode.USERNAME_REQUIRED.exception();
         }
 
-        if (password == null || password.isBlank()) {
-            throw UserErrorCode.PASSWORD_REQUIRED.exception();
-        }
+        validatePassword(password);
 
         if (ip == null || ip.isBlank()) {
             throw UserErrorCode.CLIENT_IP_REQUIRED.exception();
@@ -122,5 +123,18 @@ public class AuthServiceImpl implements AuthService {
         loginLog.setLoginTime(now);
         loginLogMapper.insert(loginLog);
         return JWTUtil.issueJWT(jwtProperty.getSecretKey(), jwtProperty.getTtl(), user.getId().toString());
+    }
+
+    private static void validatePassword(String password) {
+        if (password == null || password.isBlank()) {
+            throw UserErrorCode.PASSWORD_REQUIRED.exception();
+        }
+        if (password.length() < MIN_PASSWORD_LENGTH
+                || password.length() > MAX_PASSWORD_LENGTH) {
+            throw UserErrorCode.PASSWORD_LENGTH_INVALID.exception();
+        }
+        if (!PASSWORD_PATTERN.matcher(password).matches()) {
+            throw UserErrorCode.PASSWORD_FORMAT_INVALID.exception();
+        }
     }
 }

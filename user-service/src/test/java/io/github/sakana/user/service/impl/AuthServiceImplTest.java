@@ -14,12 +14,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -106,6 +109,54 @@ class AuthServiceImplTest {
     }
 
     @ParameterizedTest
+    @MethodSource("invalidPasswordLengths")
+    @DisplayName("注册密码长度不合法时返回稳定业务异常")
+    void shouldRejectInvalidRegisterPasswordLength(String password) {
+        RegisterDTO request = validRequest();
+        request.setPassword(password);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> authService.register(request)
+        );
+
+        assertBusinessError(
+                exception,
+                "USER_PASSWORD_LENGTH_INVALID",
+                "密码长度必须在8到64个字符之间",
+                400
+        );
+        verifyNoInteractions(
+                passwordEncoder, userMapper, profileMapper, loginLogMapper, snowflakeIdGenerator
+        );
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "password!", "Password-123", "pass word", "密码12345678", "abc.def1", "abc/1234"
+    })
+    @DisplayName("注册密码包含非法字符时返回稳定业务异常")
+    void shouldRejectInvalidRegisterPasswordFormat(String password) {
+        RegisterDTO request = validRequest();
+        request.setPassword(password);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> authService.register(request)
+        );
+
+        assertBusinessError(
+                exception,
+                "USER_PASSWORD_FORMAT_INVALID",
+                "密码只能由数字、大小写字母和下划线组成",
+                400
+        );
+        verifyNoInteractions(
+                passwordEncoder, userMapper, profileMapper, loginLogMapper, snowflakeIdGenerator
+        );
+    }
+
+    @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {" ", "\t", "\n"})
     @DisplayName("客户端IP为空时返回稳定业务异常")
@@ -130,7 +181,7 @@ class AuthServiceImplTest {
         RegisterDTO request = validRequest();
         DuplicateKeyException cause = new DuplicateKeyException("duplicate username");
         when(snowflakeIdGenerator.nextId()).thenReturn(1001L);
-        when(passwordEncoder.encode("password")).thenReturn("encoded-password");
+        when(passwordEncoder.encode("Password_123")).thenReturn("encoded-password");
         when(userMapper.insert(any(User.class))).thenThrow(cause);
 
         BusinessException exception = assertThrows(
@@ -196,6 +247,50 @@ class AuthServiceImplTest {
     }
 
     @ParameterizedTest
+    @MethodSource("invalidPasswordLengths")
+    @DisplayName("登录密码长度不合法时返回稳定业务异常")
+    void shouldRejectInvalidLoginPasswordLength(String password) {
+        LoginDTO request = validLoginRequest();
+        request.setPassword(password);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> authService.login(request)
+        );
+
+        assertBusinessError(
+                exception,
+                "USER_PASSWORD_LENGTH_INVALID",
+                "密码长度必须在8到64个字符之间",
+                400
+        );
+        verifyNoInteractions(passwordEncoder, userMapper, loginLogMapper);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "password!", "Password-123", "pass word", "密码12345678", "abc.def1", "abc/1234"
+    })
+    @DisplayName("登录密码包含非法字符时返回稳定业务异常")
+    void shouldRejectInvalidLoginPasswordFormat(String password) {
+        LoginDTO request = validLoginRequest();
+        request.setPassword(password);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> authService.login(request)
+        );
+
+        assertBusinessError(
+                exception,
+                "USER_PASSWORD_FORMAT_INVALID",
+                "密码只能由数字、大小写字母和下划线组成",
+                400
+        );
+        verifyNoInteractions(passwordEncoder, userMapper, loginLogMapper);
+    }
+
+    @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {" ", "\t", "\n"})
     @DisplayName("登录客户端IP为空时返回稳定业务异常")
@@ -240,7 +335,7 @@ class AuthServiceImplTest {
         user.setId(1001L);
         user.setPassword("encoded-password");
         when(userMapper.selectByUsername("sakana")).thenReturn(user);
-        when(passwordEncoder.matches("password", "encoded-password")).thenReturn(false);
+        when(passwordEncoder.matches("Password_123", "encoded-password")).thenReturn(false);
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
@@ -256,7 +351,7 @@ class AuthServiceImplTest {
     private static RegisterDTO validRequest() {
         RegisterDTO request = new RegisterDTO();
         request.setUsername("sakana");
-        request.setPassword("password");
+        request.setPassword("Password_123");
         request.setIp("127.0.0.1");
         request.setDevice("desktop");
         return request;
@@ -265,10 +360,14 @@ class AuthServiceImplTest {
     private static LoginDTO validLoginRequest() {
         LoginDTO request = new LoginDTO();
         request.setUsername("sakana");
-        request.setPassword("password");
+        request.setPassword("Password_123");
         request.setIp("127.0.0.1");
         request.setDevice("desktop");
         return request;
+    }
+
+    private static Stream<String> invalidPasswordLengths() {
+        return Stream.of("Abc_123", "A".repeat(65));
     }
 
     private static void assertBusinessError(

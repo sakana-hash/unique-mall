@@ -47,6 +47,38 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("注册密码长度错误时返回统一的400业务错误")
+    void shouldReturnInvalidRegisterPasswordLengthError() throws Exception {
+        authService.registerFailure = UserErrorCode.PASSWORD_LENGTH_INVALID.exception();
+
+        mockMvc.perform(post("/api/user/auth/register")
+                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_DEVICE, "desktop")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"sakana\",\"password\":\"Abc_123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("USER_PASSWORD_LENGTH_INVALID"))
+                .andExpect(jsonPath("$.msg")
+                        .value("密码长度必须在8到64个字符之间"));
+    }
+
+    @Test
+    @DisplayName("注册密码格式错误时返回统一的400业务错误")
+    void shouldReturnInvalidRegisterPasswordFormatError() throws Exception {
+        authService.registerFailure = UserErrorCode.PASSWORD_FORMAT_INVALID.exception();
+
+        mockMvc.perform(post("/api/user/auth/register")
+                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_DEVICE, "desktop")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"sakana\",\"password\":\"password!\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("USER_PASSWORD_FORMAT_INVALID"))
+                .andExpect(jsonPath("$.msg")
+                        .value("密码只能由数字、大小写字母和下划线组成"));
+    }
+
+    @Test
     @DisplayName("用户名重复时返回统一的409业务错误")
     void shouldReturnDuplicateUsernameError() throws Exception {
         authService.registerFailure = UserErrorCode.USERNAME_ALREADY_EXISTS.exception();
@@ -87,6 +119,38 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("REQUEST_INVALID"))
                 .andExpect(jsonPath("$.msg").value("请求参数格式错误"));
+    }
+
+    @Test
+    @DisplayName("登录密码长度错误时返回统一的400业务错误")
+    void shouldReturnInvalidLoginPasswordLengthError() throws Exception {
+        authService.loginFailure = UserErrorCode.PASSWORD_LENGTH_INVALID.exception();
+
+        mockMvc.perform(post("/api/user/auth/login")
+                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_DEVICE, "desktop")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"sakana\",\"password\":\"Abc_123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("USER_PASSWORD_LENGTH_INVALID"))
+                .andExpect(jsonPath("$.msg")
+                        .value("密码长度必须在8到64个字符之间"));
+    }
+
+    @Test
+    @DisplayName("登录密码格式错误时返回统一的400业务错误")
+    void shouldReturnInvalidLoginPasswordFormatError() throws Exception {
+        authService.loginFailure = UserErrorCode.PASSWORD_FORMAT_INVALID.exception();
+
+        mockMvc.perform(post("/api/user/auth/login")
+                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_DEVICE, "desktop")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"sakana\",\"password\":\"password!\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("USER_PASSWORD_FORMAT_INVALID"))
+                .andExpect(jsonPath("$.msg")
+                        .value("密码只能由数字、大小写字母和下划线组成"));
     }
 
     @Test

@@ -48,6 +48,10 @@ class UserErrorCodeTest {
                 "USER_USERNAME_REQUIRED", "用户名不能为空", 400);
         assertError(UserErrorCode.PASSWORD_REQUIRED,
                 "USER_PASSWORD_REQUIRED", "密码不能为空", 400);
+        assertError(UserErrorCode.PASSWORD_LENGTH_INVALID,
+                "USER_PASSWORD_LENGTH_INVALID", "密码长度必须在8到64个字符之间", 400);
+        assertError(UserErrorCode.PASSWORD_FORMAT_INVALID,
+                "USER_PASSWORD_FORMAT_INVALID", "密码只能由数字、大小写字母和下划线组成", 400);
         assertError(UserErrorCode.CLIENT_IP_REQUIRED,
                 "USER_CLIENT_IP_REQUIRED", "无法获取客户端IP", 400);
         assertError(UserErrorCode.USERNAME_ALREADY_EXISTS,
