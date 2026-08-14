@@ -6,6 +6,8 @@ unique-mall:
     secret-key: ${unique-mall.jwt.secret-key}
     ttl: ${unique-mall.jwt.ttl}
   gateway:
+    developer-mode:
+      enabled: false
     auth:
       ignore-urls:
         - /api/user/auth/register
