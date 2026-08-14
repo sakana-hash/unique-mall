@@ -19,7 +19,7 @@ public class AuthController {
 
     @PostMapping("/register")
     Result<RegisterVO> register(@RequestBody RegisterDTO registerDTO,
-                                @RequestHeader(HeadersConstant.User_IP) String ip,
+                                @RequestHeader(HeadersConstant.USER_IP) String ip,
                                 @RequestHeader(HeadersConstant.USER_DEVICE) String device) {
         registerDTO.setIp(ip);
         registerDTO.setDevice(device);
@@ -32,7 +32,7 @@ public class AuthController {
 
     @PostMapping("/login")
     Result<LoginVO> login(@RequestBody LoginDTO loginDTO,
-                          @RequestHeader(HeadersConstant.User_IP) String ip,
+                          @RequestHeader(HeadersConstant.USER_IP) String ip,
                           @RequestHeader(HeadersConstant.USER_DEVICE) String device) {
         loginDTO.setIp(ip);
         loginDTO.setDevice(device);

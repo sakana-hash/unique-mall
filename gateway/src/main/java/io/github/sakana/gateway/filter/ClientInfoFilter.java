@@ -21,7 +21,7 @@ import ua_parser.Parser;
 public class ClientInfoFilter implements GlobalFilter, Ordered {
 
     private static final String HEADER_USER_DEVICE = HeadersConstant.USER_DEVICE;
-    private static final String HEADER_USER_IP = HeadersConstant.User_IP;
+    private static final String HEADER_USER_IP = HeadersConstant.USER_IP;
     private static final Parser uaParser = new Parser();
 
     @Override

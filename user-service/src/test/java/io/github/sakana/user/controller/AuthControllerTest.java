@@ -37,7 +37,7 @@ class AuthControllerTest {
     @DisplayName("注册请求体为null时返回统一的400参数错误")
     void shouldRejectNullRegisterBody() throws Exception {
         mockMvc.perform(post("/api/user/auth/register")
-                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_IP, "127.0.0.1")
                         .header(HeadersConstant.USER_DEVICE, "desktop")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("null"))
@@ -52,7 +52,7 @@ class AuthControllerTest {
         authService.registerFailure = UserErrorCode.PASSWORD_LENGTH_INVALID.exception();
 
         mockMvc.perform(post("/api/user/auth/register")
-                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_IP, "127.0.0.1")
                         .header(HeadersConstant.USER_DEVICE, "desktop")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"sakana\",\"password\":\"Abc_123\"}"))
@@ -68,7 +68,7 @@ class AuthControllerTest {
         authService.registerFailure = UserErrorCode.PASSWORD_FORMAT_INVALID.exception();
 
         mockMvc.perform(post("/api/user/auth/register")
-                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_IP, "127.0.0.1")
                         .header(HeadersConstant.USER_DEVICE, "desktop")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"sakana\",\"password\":\"password!\"}"))
@@ -84,7 +84,7 @@ class AuthControllerTest {
         authService.registerFailure = UserErrorCode.USERNAME_ALREADY_EXISTS.exception();
 
         mockMvc.perform(post("/api/user/auth/register")
-                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_IP, "127.0.0.1")
                         .header(HeadersConstant.USER_DEVICE, "desktop")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"sakana\",\"password\":\"password\"}"))
@@ -98,7 +98,7 @@ class AuthControllerTest {
     @DisplayName("注册成功时code为SUCCESS")
     void shouldReturnSuccessCode() throws Exception {
         mockMvc.perform(post("/api/user/auth/register")
-                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_IP, "127.0.0.1")
                         .header(HeadersConstant.USER_DEVICE, "desktop")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"sakana\",\"password\":\"password\"}"))
@@ -112,7 +112,7 @@ class AuthControllerTest {
     @DisplayName("登录请求体为null时返回统一的400参数错误")
     void shouldRejectNullLoginBody() throws Exception {
         mockMvc.perform(post("/api/user/auth/login")
-                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_IP, "127.0.0.1")
                         .header(HeadersConstant.USER_DEVICE, "desktop")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("null"))
@@ -127,7 +127,7 @@ class AuthControllerTest {
         authService.loginFailure = UserErrorCode.PASSWORD_LENGTH_INVALID.exception();
 
         mockMvc.perform(post("/api/user/auth/login")
-                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_IP, "127.0.0.1")
                         .header(HeadersConstant.USER_DEVICE, "desktop")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"sakana\",\"password\":\"Abc_123\"}"))
@@ -143,7 +143,7 @@ class AuthControllerTest {
         authService.loginFailure = UserErrorCode.PASSWORD_FORMAT_INVALID.exception();
 
         mockMvc.perform(post("/api/user/auth/login")
-                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_IP, "127.0.0.1")
                         .header(HeadersConstant.USER_DEVICE, "desktop")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"sakana\",\"password\":\"password!\"}"))
@@ -159,7 +159,7 @@ class AuthControllerTest {
         authService.loginFailure = UserErrorCode.INVALID_CREDENTIALS.exception();
 
         mockMvc.perform(post("/api/user/auth/login")
-                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_IP, "127.0.0.1")
                         .header(HeadersConstant.USER_DEVICE, "desktop")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"sakana\",\"password\":\"wrong\"}"))
@@ -172,7 +172,7 @@ class AuthControllerTest {
     @DisplayName("登录成功时code为SUCCESS")
     void shouldReturnLoginSuccessCode() throws Exception {
         mockMvc.perform(post("/api/user/auth/login")
-                        .header(HeadersConstant.User_IP, "127.0.0.1")
+                        .header(HeadersConstant.USER_IP, "127.0.0.1")
                         .header(HeadersConstant.USER_DEVICE, "desktop")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"sakana\",\"password\":\"password\"}"))
