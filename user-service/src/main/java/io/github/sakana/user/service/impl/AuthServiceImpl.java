@@ -3,6 +3,7 @@ package io.github.sakana.user.service.impl;
 import io.github.sakana.common.properties.JWTProperty;
 import io.github.sakana.common.utils.JWTUtil;
 import io.github.sakana.snowflake.SnowflakeIdGenerator;
+import io.github.sakana.user.enumeration.UserErrorCode;
 import io.github.sakana.user.mapper.UserLoginLogMapper;
 import io.github.sakana.user.mapper.UserMapper;
 import io.github.sakana.user.mapper.UserProfileMapper;
@@ -39,21 +40,25 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public String register(RegisterDTO registerDTO) {
+        if (registerDTO == null) {
+            throw UserErrorCode.REGISTER_REQUEST_REQUIRED.exception();
+        }
+
         String username = registerDTO.getUsername();
         String password = registerDTO.getPassword();
         String ip = registerDTO.getIp();
         String device = registerDTO.getDevice();
 
         if (username == null || username.isBlank()) {
-            throw new RuntimeException("用户名不能为空");
+            throw UserErrorCode.USERNAME_REQUIRED.exception();
         }
 
         if (password == null || password.isBlank()) {
-            throw new RuntimeException("密码不能为空");
+            throw UserErrorCode.PASSWORD_REQUIRED.exception();
         }
 
         if (ip == null || ip.isBlank()) {
-            throw new RuntimeException("ip不能为空");
+            throw UserErrorCode.CLIENT_IP_REQUIRED.exception();
         }
 
         Long id = snowflakeIdGenerator.nextId();
@@ -64,9 +69,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             userMapper.insert(user);
         } catch (DuplicateKeyException ex) {
-            throw new RuntimeException(String.format(
-                    "重复的用户名: %s", username
-            ));
+            throw UserErrorCode.USERNAME_ALREADY_EXISTS.exception(null, ex);
         }
 
         UserProfile profile = new UserProfile();
@@ -85,26 +88,30 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String login(LoginDTO loginDTO) {
+        if (loginDTO == null) {
+            throw UserErrorCode.LOGIN_REQUEST_REQUIRED.exception();
+        }
+
         String username = loginDTO.getUsername();
         String password = loginDTO.getPassword();
         String ip = loginDTO.getIp();
         String device = loginDTO.getDevice();
 
         if (username == null || username.isBlank()) {
-            throw new RuntimeException("用户名不能为空");
+            throw UserErrorCode.USERNAME_REQUIRED.exception();
         }
 
         if (password == null || password.isBlank()) {
-            throw new RuntimeException("密码不能为空");
+            throw UserErrorCode.PASSWORD_REQUIRED.exception();
         }
 
         if (ip == null || ip.isBlank()) {
-            throw new RuntimeException("ip不能为空");
+            throw UserErrorCode.CLIENT_IP_REQUIRED.exception();
         }
 
         User user = userMapper.selectByUsername(username);
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("用户名或密码错误");
+            throw UserErrorCode.INVALID_CREDENTIALS.exception();
         }
 
         LocalDateTime now = LocalDateTime.now();

@@ -1,10 +1,13 @@
 package io.github.sakana.user.service.impl;
 
+import io.github.sakana.user.enumeration.UserErrorCode;
 import io.github.sakana.user.mapper.AddressMapper;
 import io.github.sakana.user.pojo.entity.Address;
 import io.github.sakana.user.service.AddressService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
 
 @Service
 public class AddressServiceImpl implements AddressService {
@@ -15,15 +18,18 @@ public class AddressServiceImpl implements AddressService {
     @Override
     public Address getByIdAndUserId(Long id, Long userId) {
         if (id == null || id <= 0) {
-            throw new RuntimeException("不合法的地址id");
+            throw UserErrorCode.ADDRESS_ID_INVALID.exception();
         }
         if (userId == null || userId <= 0) {
-            throw new RuntimeException("不合法的用户id");
+            throw UserErrorCode.USER_ID_INVALID.exception();
         }
 
         Address address = addressMapper.selectByIdAndUserId(id, userId);
         if (address == null) {
-            throw new RuntimeException("地址id不存在, id:" +  id + ", userId:" + userId);
+            throw UserErrorCode.ADDRESS_NOT_FOUND.exception(Map.of(
+                    "id", id,
+                    "userId", userId
+            ));
         }
 
         return address;

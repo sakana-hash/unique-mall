@@ -1,5 +1,6 @@
 package io.github.sakana.gateway.filter;
 
+import io.github.sakana.common.constant.HeadersConstant;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -19,8 +20,8 @@ import ua_parser.Parser;
 @Component
 public class ClientInfoFilter implements GlobalFilter, Ordered {
 
-    private static final String HEADER_USER_DEVICE = "X-User-Device";
-    private static final String HEADER_USER_IP = "X-User-IP";
+    private static final String HEADER_USER_DEVICE = HeadersConstant.USER_DEVICE;
+    private static final String HEADER_USER_IP = HeadersConstant.User_IP;
     private static final Parser uaParser = new Parser();
 
     @Override

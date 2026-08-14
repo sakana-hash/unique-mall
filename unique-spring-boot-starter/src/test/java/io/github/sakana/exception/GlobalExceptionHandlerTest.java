@@ -43,10 +43,9 @@ class GlobalExceptionHandlerTest {
     void shouldHandleBusinessException() throws Exception {
         mockMvc.perform(get("/test/business"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath("$.errorCode").value("PRODUCT_NOT_FOUND"))
+                .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"))
                 .andExpect(jsonPath("$.msg").value("商品不存在"))
-                .andExpect(jsonPath("$.details.productId").value(1001));
+                .andExpect(jsonPath("$.data.productId").value(1001));
     }
 
     @Test
@@ -54,8 +53,7 @@ class GlobalExceptionHandlerTest {
     void shouldHandleUnexpectedException() throws Exception {
         mockMvc.perform(get("/test/unexpected"))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath("$.errorCode").value("INTERNAL_ERROR"))
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
                 .andExpect(jsonPath("$.msg").value("系统繁忙，请稍后重试"));
     }
 
@@ -64,7 +62,7 @@ class GlobalExceptionHandlerTest {
     void shouldHandleMissingRequestHeader() throws Exception {
         mockMvc.perform(get("/test/header"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorCode").value("REQUEST_INVALID"))
+                .andExpect(jsonPath("$.code").value("REQUEST_INVALID"))
                 .andExpect(jsonPath("$.msg").value("请求参数格式错误"));
     }
 
@@ -75,7 +73,7 @@ class GlobalExceptionHandlerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorCode").value("REQUEST_INVALID"));
+                .andExpect(jsonPath("$.code").value("REQUEST_INVALID"));
     }
 
     @Test
@@ -83,7 +81,7 @@ class GlobalExceptionHandlerTest {
     void shouldHandleMethodNotAllowed() throws Exception {
         mockMvc.perform(post("/test/business"))
                 .andExpect(status().isMethodNotAllowed())
-                .andExpect(jsonPath("$.errorCode").value("METHOD_NOT_ALLOWED"));
+                .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"));
     }
 
     @Test
@@ -93,7 +91,7 @@ class GlobalExceptionHandlerTest {
                         .contentType(MediaType.TEXT_PLAIN)
                         .content("plain text"))
                 .andExpect(status().isUnsupportedMediaType())
-                .andExpect(jsonPath("$.errorCode").value("MEDIA_TYPE_NOT_SUPPORTED"));
+                .andExpect(jsonPath("$.code").value("MEDIA_TYPE_NOT_SUPPORTED"));
     }
 
     @Test
@@ -107,7 +105,7 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode().value()).isEqualTo(404);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().errorCode()).isEqualTo("RESOURCE_NOT_FOUND");
+        assertThat(response.getBody().getCode()).isEqualTo("RESOURCE_NOT_FOUND");
     }
 
     @Test

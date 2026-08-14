@@ -1,7 +1,7 @@
 package io.github.sakana.exception;
 
 import io.github.sakana.common.exception.BusinessException;
-import io.github.sakana.common.result.ErrorResult;
+import io.github.sakana.common.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,23 +33,23 @@ public class GlobalExceptionHandler {
     private static final String INTERNAL_ERROR = "INTERNAL_ERROR";
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResult> handleBusinessException(BusinessException exception) {
+    public ResponseEntity<Result<Object>> handleBusinessException(BusinessException exception) {
         log.warn("业务处理失败, code={}, message={}", exception.getCode(), exception.getMessage());
         return ResponseEntity.status(exception.getHttpStatus())
-                .body(ErrorResult.error(
+                .body(Result.error(
                         exception.getCode(), exception.getMessage(), exception.getDetails()
                 ));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResult> handleMethodArgumentNotValid(
+    public ResponseEntity<Result<Object>> handleMethodArgumentNotValid(
             MethodArgumentNotValidException exception
     ) {
         return invalidRequest("请求参数校验失败", fieldErrors(exception));
     }
 
     @ExceptionHandler(BindException.class)
-    public ResponseEntity<ErrorResult> handleBindException(BindException exception) {
+    public ResponseEntity<Result<Object>> handleBindException(BindException exception) {
         return invalidRequest("请求参数校验失败", fieldErrors(exception));
     }
 
@@ -59,45 +59,48 @@ public class GlobalExceptionHandler {
             MissingServletRequestParameterException.class,
             MethodArgumentTypeMismatchException.class
     })
-    public ResponseEntity<ErrorResult> handleInvalidRequest(Exception exception) {
+    public ResponseEntity<Result<Object>> handleInvalidRequest(Exception exception) {
         log.debug("请求参数格式错误: {}", exception.getMessage());
         return invalidRequest("请求参数格式错误", null);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ErrorResult> handleMethodNotAllowed(
+    public ResponseEntity<Result<Object>> handleMethodNotAllowed(
             HttpRequestMethodNotSupportedException exception
     ) {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(ErrorResult.error(METHOD_NOT_ALLOWED, "请求方法不支持", null));
+                .body(Result.error(METHOD_NOT_ALLOWED, "请求方法不支持"));
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
-    public ResponseEntity<ErrorResult> handleMediaTypeNotSupported(
+    public ResponseEntity<Result<Object>> handleMediaTypeNotSupported(
             HttpMediaTypeNotSupportedException exception
     ) {
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                .body(ErrorResult.error(
-                        MEDIA_TYPE_NOT_SUPPORTED, "请求内容类型不支持", null
+                .body(Result.error(
+                        MEDIA_TYPE_NOT_SUPPORTED, "请求内容类型不支持"
                 ));
     }
 
     @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
-    public ResponseEntity<ErrorResult> handleResourceNotFound(Exception exception) {
+    public ResponseEntity<Result<Object>> handleResourceNotFound(Exception exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErrorResult.error(RESOURCE_NOT_FOUND, "请求资源不存在", null));
+                .body(Result.error(RESOURCE_NOT_FOUND, "请求资源不存在"));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResult> handleUnexpectedException(Exception exception) {
+    public ResponseEntity<Result<Object>> handleUnexpectedException(Exception exception) {
         log.error("未处理的系统异常", exception);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResult.error(INTERNAL_ERROR, "系统繁忙，请稍后重试", null));
+                .body(Result.error(INTERNAL_ERROR, "系统繁忙，请稍后重试"));
     }
 
-    private static ResponseEntity<ErrorResult> invalidRequest(String message, Object details) {
+    private static ResponseEntity<Result<Object>> invalidRequest(
+            String message,
+            Object details
+    ) {
         return ResponseEntity.badRequest()
-                .body(ErrorResult.error(REQUEST_INVALID, message, details));
+                .body(Result.error(REQUEST_INVALID, message, details));
     }
 
     private static Map<String, String> fieldErrors(BindException exception) {

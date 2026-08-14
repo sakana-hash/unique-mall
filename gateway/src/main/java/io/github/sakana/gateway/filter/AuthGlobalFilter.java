@@ -36,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String AUTH_UNAUTHORIZED = "AUTH_UNAUTHORIZED";
     private static final String HEADER_USER_ID = HeadersConstant.USER_ID;
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
@@ -99,9 +100,11 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
         byte[] bytes;
         try {
-            bytes = objectMapper.writeValueAsBytes(Result.error(msg));
+            bytes = objectMapper.writeValueAsBytes(Result.error(AUTH_UNAUTHORIZED, msg));
         } catch (JsonProcessingException e) {
-            bytes = "{\"code\":1,\"msg\":\"认证失败\"}".getBytes(StandardCharsets.UTF_8);
+            bytes = ("{\"code\":\"" + AUTH_UNAUTHORIZED
+                    + "\",\"msg\":\"认证失败\",\"data\":null}")
+                    .getBytes(StandardCharsets.UTF_8);
         }
 
         DataBuffer buffer = response.bufferFactory().wrap(bytes);
