@@ -8,6 +8,7 @@ import io.github.sakana.api.pojo.dto.SkuTradeDTO;
 import io.github.sakana.api.pojo.dto.StockLockRequestDTO;
 import io.github.sakana.common.result.Result;
 import io.github.sakana.order.constant.OrderStatus;
+import io.github.sakana.order.enumeration.OrderErrorCode;
 import io.github.sakana.order.pojo.dto.CreateOrderRequestDTO;
 import io.github.sakana.order.pojo.entity.Address;
 import io.github.sakana.order.pojo.entity.Item;
@@ -82,14 +83,14 @@ public class OrderServiceImpl implements OrderService {
         String remark = requestDTO.getRemark();
 
         List<Long> skuIds = items.stream().map(CreateOrderRequestDTO.Item::getSkuId).toList();
-        Result<List<SkuTradeDTO>> result = productClient.getSkuTradeInfo(skuIds);
-        if (!result.isSuccess()) {
-            throw new RuntimeException();
+        Result<List<SkuTradeDTO>> productResult = productClient.getSkuTradeInfo(skuIds);
+        if (productResult == null || !productResult.isSuccess()) {
+            throw OrderErrorCode.PRODUCT_SERVICE_RESPONSE_INVALID.exception();
         }
 
-        List<SkuTradeDTO> skuTradeDTOs = result.getData();
+        List<SkuTradeDTO> skuTradeDTOs = productResult.getData();
         if (skuTradeDTOs == null || skuTradeDTOs.isEmpty()) {
-            throw new RuntimeException("skuTradeDTOs cannot be null or empty");
+            throw OrderErrorCode.PRODUCT_SERVICE_RESPONSE_INVALID.exception();
         }
 
         List<Item> orderItems = skuTradeDTOs.stream().filter(Objects::nonNull).map(dto -> Item.builder()

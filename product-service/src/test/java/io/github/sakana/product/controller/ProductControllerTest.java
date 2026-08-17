@@ -12,6 +12,7 @@ import io.github.sakana.product.service.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,12 +34,58 @@ class ProductControllerTest {
     void setUp() {
         productService.failure = null;
         productService.product = null;
+        productService.pageResult = null;
 
         ProductController controller = new ProductController();
         ReflectionTestUtils.setField(controller, "productService", productService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
+    }
+
+    @Test
+    @DisplayName("分页请求体为空时返回统一的400请求错误")
+    void shouldRejectNullPageBody() throws Exception {
+        mockMvc.perform(post("/api/product/page")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("null"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("REQUEST_INVALID"))
+                .andExpect(jsonPath("$.msg").value("请求参数格式错误"));
+    }
+
+    @Test
+    @DisplayName("商品分类ID不合法时返回统一的400业务错误")
+    void shouldReturnInvalidCategoryIdError() throws Exception {
+        productService.failure = ProductErrorCode.CATEGORY_ID_INVALID.exception();
+
+        mockMvc.perform(post("/api/product/page")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"page\":1,\"size\":20,\"categoryId\":0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PRODUCT_CATEGORY_ID_INVALID"))
+                .andExpect(jsonPath("$.msg").value("商品分类ID不合法"));
+    }
+
+    @Test
+    @DisplayName("分页查询成功时返回SUCCESS")
+    void shouldReturnProductPage() throws Exception {
+        productService.pageResult = PageVO.<ProductVO>builder()
+                .items(List.of())
+                .total(0L)
+                .page(1)
+                .size(20)
+                .pages(0L)
+                .build();
+
+        mockMvc.perform(post("/api/product/page")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"page\":1,\"size\":20}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.total").value(0))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(20));
     }
 
     @Test
@@ -103,11 +151,15 @@ class ProductControllerTest {
     private static class StubProductService implements ProductService {
 
         private Product product;
+        private PageVO<ProductVO> pageResult;
         private BusinessException failure;
 
         @Override
         public PageVO<ProductVO> page(ProductPageDTO pageDTO) {
-            throw new UnsupportedOperationException();
+            if (failure != null) {
+                throw failure;
+            }
+            return pageResult;
         }
 
         @Override

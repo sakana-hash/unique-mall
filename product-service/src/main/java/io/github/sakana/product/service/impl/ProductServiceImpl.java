@@ -41,6 +41,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public PageVO<ProductVO> page(ProductPageDTO pageDTO) {
+        if (pageDTO == null) {
+            throw ProductErrorCode.PAGE_REQUEST_REQUIRED.exception();
+        }
+
         Integer page = pageDTO.getPage();
         Integer size = pageDTO.getSize();
         Long categoryId = pageDTO.getCategoryId();
@@ -54,16 +58,22 @@ public class ProductServiceImpl implements ProductService {
             size = 100;
         }
         if (categoryId != null && categoryId <= 0) {
-            throw new RuntimeException(String.format(
-                    "无效的categoryId: %d", categoryId
-            ));
+            throw ProductErrorCode.CATEGORY_ID_INVALID.exception();
         }
 
         String key = cacheService.buildPageResultKey(page, size, categoryId, sort);
         PageResult result = cacheService.getPageResult(key);
         if (result == null) {
-            PageQuery query = new PageQuery((page - 1) * size, size, categoryId, sort);
-            result = new PageResult(productMapper.selectPage(query), productMapper.count(query));
+            PageQuery query = PageQuery.builder()
+                    .offset((page - 1) * size)
+                    .size(size)
+                    .categoryId(categoryId)
+                    .sort(sort)
+                    .build();
+            result = PageResult.builder()
+                    .ids(productMapper.selectPage(query))
+                    .total(productMapper.count(query))
+                    .build();
             cacheService.setPageResult(key, result);
         }
 
@@ -73,7 +83,13 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
 
         Long pages = (result.getTotal() + size - 1) / size; // 总页数
-        return new PageVO<>(productVOS, result.getTotal(), page, size, pages);
+        return PageVO.<ProductVO>builder()
+                .items(productVOS)
+                .total(result.getTotal())
+                .page(page)
+                .size(size)
+                .pages(pages)
+                .build();
     }
 
     @Override
@@ -204,24 +220,46 @@ public class ProductServiceImpl implements ProductService {
 
     public List<ProductSKU> getSkuTradeInfo(List<Long> skuIds) {
         if (skuIds == null || skuIds.isEmpty()) {
-            return new ArrayList<>();
+            throw ProductErrorCode.SKU_IDS_REQUIRED.exception();
         }
         if (skuIds.size() > 50) {
-            throw new RuntimeException(String.format(
-                    "sku查询项不能超过50, 当前数目: %d", skuIds.size()
+            throw ProductErrorCode.SKU_QUERY_LIMIT_EXCEEDED.exception(Map.of(
+                    "currentCount", skuIds.size(),
+                    "maxCount", 50
             ));
         }
 
         Set<Long> uniqueSkuIds = new HashSet<>();
-        for (Long skuId : skuIds) {
+        for (int index = 0; index < skuIds.size(); index++) {
+            Long skuId = skuIds.get(index);
+            if (skuId == null || skuId <= 0) {
+                throw ProductErrorCode.SKU_ID_INVALID.exception(Map.of("index", index));
+            }
             if (!uniqueSkuIds.add(skuId)) {
-                throw new RuntimeException(String.format("sku id不能重复: %d", skuId));
+                throw ProductErrorCode.SKU_ID_DUPLICATED.exception(Map.of("skuId", skuId));
             }
         }
 
         List<ProductSKU> productSKUS = skuMapper.selectByIds(skuIds);
-        if (productSKUS.size() != skuIds.size()) {
-            throw new RuntimeException("部分sku不存在");
+        Set<Long> foundSkuIds = productSKUS.stream()
+                .map(ProductSKU::getId)
+                .collect(Collectors.toSet());
+        List<Long> missingSkuIds = skuIds.stream()
+                .filter(skuId -> !foundSkuIds.contains(skuId))
+                .toList();
+        if (!missingSkuIds.isEmpty()) {
+            throw ProductErrorCode.SKU_NOT_FOUND.exception(Map.of("skuIds", missingSkuIds));
+        }
+
+        List<Long> unavailableSkuIds = productSKUS.stream()
+                .filter(sku -> !OnSaleType.ONSALE.equals(sku.getProductStatus())
+                        || !OnSaleType.ONSALE.equals(sku.getStatus()))
+                .map(ProductSKU::getId)
+                .toList();
+        if (!unavailableSkuIds.isEmpty()) {
+            throw ProductErrorCode.SKU_NOT_AVAILABLE.exception(Map.of(
+                    "skuIds", unavailableSkuIds
+            ));
         }
 
         List<Long> productIds = productSKUS.stream()
@@ -231,19 +269,10 @@ public class ProductServiceImpl implements ProductService {
         List<Product> products = batchGetDetails(productIds);
         Map<Long, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
 
-        List<Long> unavailableSkuIds = productSKUS.stream()
-                .filter(sku -> !OnSaleType.ONSALE.equals(sku.getProductStatus())
-                        || !OnSaleType.ONSALE.equals(sku.getStatus()))
-                .map(ProductSKU::getId)
-                .toList();
-        if (!unavailableSkuIds.isEmpty()) {
-            throw new RuntimeException("部分sku不可销售, skuIds: " + unavailableSkuIds);
-        }
-
         productSKUS = productSKUS.stream().map(sku -> {
             Product product = productMap.get(sku.getProductId());
             if (product == null) {
-                throw new RuntimeException(
+                throw new IllegalStateException(
                         "不合法的数据库状态: sku关联的商品不存在, skuId: " + sku.getId()
                 );
             }
@@ -254,7 +283,7 @@ public class ProductServiceImpl implements ProductService {
                     .filter(image -> ImageType.MAIN_IMAGE.equals(image.getType()))
                     .map(ProductImage::getUrl)
                     .findFirst()
-                    .orElseThrow(() -> new RuntimeException(String.format(
+                    .orElseThrow(() -> new IllegalStateException(String.format(
                             "不合法的数据库状态: 商品主图不存在, productId: %d, skuId: %d",
                             product.getId(), sku.getId()
                     )));

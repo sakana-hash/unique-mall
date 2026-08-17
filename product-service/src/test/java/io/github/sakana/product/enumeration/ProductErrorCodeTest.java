@@ -39,12 +39,28 @@ class ProductErrorCodeTest {
     @Test
     @DisplayName("商品详情错误码契约保持稳定")
     void shouldExposeExpectedContracts() {
+        assertError(ProductErrorCode.PAGE_REQUEST_REQUIRED,
+                "PRODUCT_PAGE_REQUEST_REQUIRED", "分页查询参数不能为空", 400);
+        assertError(ProductErrorCode.CATEGORY_ID_INVALID,
+                "PRODUCT_CATEGORY_ID_INVALID", "商品分类ID不合法", 400);
         assertError(ProductErrorCode.PRODUCT_ID_INVALID,
                 "PRODUCT_ID_INVALID", "商品ID不合法", 400);
         assertError(ProductErrorCode.PRODUCT_NOT_FOUND,
                 "PRODUCT_NOT_FOUND", "商品不存在", 404);
         assertError(ProductErrorCode.PRODUCT_NOT_ON_SALE,
                 "PRODUCT_NOT_ON_SALE", "商品已下架", 409);
+        assertError(ProductErrorCode.SKU_IDS_REQUIRED,
+                "PRODUCT_SKU_IDS_REQUIRED", "SKU ID列表不能为空", 400);
+        assertError(ProductErrorCode.SKU_QUERY_LIMIT_EXCEEDED,
+                "PRODUCT_SKU_QUERY_LIMIT_EXCEEDED", "单次最多查询50个SKU", 400);
+        assertError(ProductErrorCode.SKU_ID_INVALID,
+                "PRODUCT_SKU_ID_INVALID", "SKU ID不合法", 400);
+        assertError(ProductErrorCode.SKU_ID_DUPLICATED,
+                "PRODUCT_SKU_ID_DUPLICATED", "SKU ID不能重复", 400);
+        assertError(ProductErrorCode.SKU_NOT_FOUND,
+                "PRODUCT_SKU_NOT_FOUND", "部分SKU不存在", 404);
+        assertError(ProductErrorCode.SKU_NOT_AVAILABLE,
+                "PRODUCT_SKU_NOT_AVAILABLE", "部分SKU不可销售", 409);
     }
 
     @Test
