@@ -2,6 +2,7 @@ package io.github.sakana.product.controller;
 
 import io.github.sakana.common.exception.BusinessException;
 import io.github.sakana.exception.GlobalExceptionHandler;
+import io.github.sakana.product.constant.OnSaleType;
 import io.github.sakana.product.enumeration.ProductErrorCode;
 import io.github.sakana.product.pojo.dto.ProductPageDTO;
 import io.github.sakana.product.pojo.entity.Product;
@@ -83,8 +84,8 @@ class InternalControllerTest {
         sku.setProductName("测试商品");
         sku.setImageUrl("https://example.com/main.jpg");
         sku.setPrice(9900L);
-        sku.setStatus(1);
-        sku.setProductStatus(1);
+        sku.setStatus(OnSaleType.ONSALE);
+        sku.setProductStatus(OnSaleType.ONSALE);
         productService.skus = List.of(sku);
 
         mockMvc.perform(post("/internal/product/sku/trade-info")

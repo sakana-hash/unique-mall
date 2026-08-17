@@ -1,6 +1,7 @@
 package io.github.sakana.product.pojo.entity;
 
 import io.github.sakana.common.entity.UpdatableEntity;
+import io.github.sakana.product.constant.ImageType;
 import io.github.sakana.product.pojo.vo.ProductDetailVO;
 import io.github.sakana.product.pojo.vo.ProductVO;
 import lombok.Data;
@@ -28,7 +29,7 @@ public class Product extends UpdatableEntity {
         vo.setProductId(getId());
         vo.setName(getName());
         vo.setMainImage(images.stream()
-                .filter(image -> image.getType() == 1)
+                .filter(image -> ImageType.MAIN_IMAGE.equals(image.getType()))
                 .map(ProductImage::getUrl)
                 .findFirst()
                 .orElse(null)

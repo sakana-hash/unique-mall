@@ -1,6 +1,8 @@
 package io.github.sakana.product.service.impl;
 
 import io.github.sakana.common.exception.BusinessException;
+import io.github.sakana.product.constant.ImageType;
+import io.github.sakana.product.constant.OnSaleType;
 import io.github.sakana.product.mapper.ProductDetailMapper;
 import io.github.sakana.product.mapper.ProductImageMapper;
 import io.github.sakana.product.mapper.ProductMapper;
@@ -39,6 +41,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static io.github.sakana.product.constant.ProductConstants.DEFAULT_PAGE_NUMBER;
+import static io.github.sakana.product.constant.ProductConstants.MAX_PAGE_SIZE;
+import static io.github.sakana.product.constant.ProductConstants.MAX_SKU_QUERY_COUNT;
+import static io.github.sakana.product.constant.ProductConstants.MIN_PAGE_NUMBER;
+import static io.github.sakana.product.constant.ProductConstants.MIN_VALID_ID;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceImplTest {
@@ -72,7 +79,7 @@ class ProductServiceImplTest {
     }
 
     @ParameterizedTest
-    @ValueSource(longs = {0, -1})
+    @ValueSource(longs = {MIN_VALID_ID - 1, MIN_VALID_ID - 2})
     @DisplayName("商品分类ID不合法时返回400业务异常")
     void shouldRejectInvalidCategoryId(Long categoryId) {
         ProductPageDTO request = new ProductPageDTO();
@@ -93,21 +100,23 @@ class ProductServiceImplTest {
     @DisplayName("分页参数越界时沿用原规则归一化")
     void shouldNormalizePageParameters() {
         ProductPageDTO request = new ProductPageDTO();
-        request.setPage(0);
-        request.setSize(101);
+        request.setPage(MIN_PAGE_NUMBER - 1);
+        request.setSize(MAX_PAGE_SIZE + 1);
         request.setSort(PageSort.DEFAULT);
         PageResult cachedResult = PageResult.builder()
                 .ids(List.of())
                 .total(0L)
                 .build();
-        when(cacheService.buildPageResultKey(1, 100, null, PageSort.DEFAULT))
+        when(cacheService.buildPageResultKey(
+                DEFAULT_PAGE_NUMBER, MAX_PAGE_SIZE, null, PageSort.DEFAULT
+        ))
                 .thenReturn("page-key");
         when(cacheService.getPageResult("page-key")).thenReturn(cachedResult);
 
         PageVO<ProductVO> result = productService.page(request);
 
-        assertEquals(1, result.getPage());
-        assertEquals(100, result.getSize());
+        assertEquals(DEFAULT_PAGE_NUMBER, result.getPage());
+        assertEquals(MAX_PAGE_SIZE, result.getSize());
         assertEquals(0L, result.getTotal());
         assertEquals(0L, result.getPages());
         assertEquals(List.of(), result.getItems());
@@ -129,9 +138,12 @@ class ProductServiceImplTest {
     }
 
     @Test
-    @DisplayName("SKU查询数量超过50时返回400并携带数量限制")
+    @DisplayName("SKU查询数量超过上限时返回400并携带数量限制")
     void shouldRejectTooManySkuIds() {
-        List<Long> skuIds = LongStream.rangeClosed(1, 51).boxed().toList();
+        int currentCount = MAX_SKU_QUERY_COUNT + 1;
+        List<Long> skuIds = LongStream.range(
+                MIN_VALID_ID, MIN_VALID_ID + currentCount
+        ).boxed().toList();
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
@@ -141,10 +153,13 @@ class ProductServiceImplTest {
         assertBusinessError(
                 exception,
                 "PRODUCT_SKU_QUERY_LIMIT_EXCEEDED",
-                "单次最多查询50个SKU",
+                "单次最多查询" + MAX_SKU_QUERY_COUNT + "个SKU",
                 400
         );
-        assertEquals(Map.of("currentCount", 51, "maxCount", 50), exception.getDetails());
+        assertEquals(Map.of(
+                "currentCount", currentCount,
+                "maxCount", MAX_SKU_QUERY_COUNT
+        ), exception.getDetails());
         verifyNoInteractions(skuMapper, productMapper, detailMapper, imageMapper, cacheService);
     }
 
@@ -180,7 +195,9 @@ class ProductServiceImplTest {
     @Test
     @DisplayName("部分SKU不存在时返回404并携带缺失ID")
     void shouldRejectMissingSku() {
-        ProductSKU existingSku = sku(1001L, 2001L, 1, 1);
+        ProductSKU existingSku = sku(
+                1001L, 2001L, OnSaleType.ONSALE, OnSaleType.ONSALE
+        );
         when(skuMapper.selectByIds(List.of(1001L, 1002L))).thenReturn(List.of(existingSku));
 
         BusinessException exception = assertThrows(
@@ -196,7 +213,9 @@ class ProductServiceImplTest {
     @Test
     @DisplayName("部分SKU不可销售时返回409并携带对应ID")
     void shouldRejectUnavailableSku() {
-        ProductSKU unavailableSku = sku(1001L, 2001L, 0, 1);
+        ProductSKU unavailableSku = sku(
+                1001L, 2001L, OnSaleType.OFFSALE, OnSaleType.ONSALE
+        );
         when(skuMapper.selectByIds(List.of(1001L))).thenReturn(List.of(unavailableSku));
 
         BusinessException exception = assertThrows(
@@ -214,7 +233,7 @@ class ProductServiceImplTest {
     @Test
     @DisplayName("SKU交易信息查询成功时补充商品名称和主图")
     void shouldReturnSkuTradeInfo() {
-        ProductSKU sku = sku(1001L, 2001L, 1, 1);
+        ProductSKU sku = sku(1001L, 2001L, OnSaleType.ONSALE, OnSaleType.ONSALE);
         Product product = productWithMainImage(2001L);
         product.setName("测试商品");
         when(skuMapper.selectByIds(List.of(1001L))).thenReturn(List.of(sku));
@@ -230,7 +249,7 @@ class ProductServiceImplTest {
 
     @ParameterizedTest
     @NullSource
-    @ValueSource(longs = {0, -1})
+    @ValueSource(longs = {MIN_VALID_ID - 1, MIN_VALID_ID - 2})
     @DisplayName("商品ID不合法时返回400业务异常")
     void shouldRejectInvalidProductId(Long id) {
         BusinessException exception = assertThrows(
@@ -261,7 +280,7 @@ class ProductServiceImplTest {
     @Test
     @DisplayName("数据库中的商品已下架时返回409")
     void shouldRejectProductNotOnSaleFromDatabase() {
-        Product product = product(1001L, 0);
+        Product product = product(1001L, OnSaleType.OFFSALE);
         when(cacheService.getProduct(1001L)).thenReturn(null);
         when(productMapper.selectById(1001L)).thenReturn(product);
 
@@ -278,7 +297,8 @@ class ProductServiceImplTest {
     @Test
     @DisplayName("缓存中的商品已下架时也返回409")
     void shouldRejectProductNotOnSaleFromCache() {
-        when(cacheService.getProduct(1001L)).thenReturn(product(1001L, 0));
+        when(cacheService.getProduct(1001L))
+                .thenReturn(product(1001L, OnSaleType.OFFSALE));
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
@@ -292,7 +312,7 @@ class ProductServiceImplTest {
     @Test
     @DisplayName("缓存命中在售商品时直接返回")
     void shouldReturnCachedProduct() {
-        Product cachedProduct = product(1001L, 1);
+        Product cachedProduct = product(1001L, OnSaleType.ONSALE);
         when(cacheService.getProduct(1001L)).thenReturn(cachedProduct);
 
         Product result = productService.getDetail(1001L);
@@ -304,7 +324,7 @@ class ProductServiceImplTest {
     @Test
     @DisplayName("缓存未命中时组装商品详情并回写缓存")
     void shouldAssembleAndCacheProduct() {
-        Product product = product(1001L, 1);
+        Product product = product(1001L, OnSaleType.ONSALE);
         ProductDetail detail = new ProductDetail();
         detail.setContent("商品详情");
         List<ProductImage> images = List.of(new ProductImage());
@@ -332,10 +352,10 @@ class ProductServiceImplTest {
     }
 
     private static Product productWithMainImage(Long id) {
-        Product product = product(id, 1);
+        Product product = product(id, OnSaleType.ONSALE);
         ProductImage image = new ProductImage();
         image.setProductId(id);
-        image.setType(1);
+        image.setType(ImageType.MAIN_IMAGE);
         image.setUrl("https://example.com/main.jpg");
         product.setImages(List.of(image));
         product.setSkus(List.of());
@@ -361,8 +381,8 @@ class ProductServiceImplTest {
     private static Stream<List<Long>> invalidSkuIdLists() {
         return Stream.of(
                 Arrays.asList(1001L, null),
-                List.of(1001L, 0L),
-                List.of(1001L, -1L)
+                List.of(1001L, MIN_VALID_ID - 1),
+                List.of(1001L, MIN_VALID_ID - 2)
         );
     }
 

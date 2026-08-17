@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static io.github.sakana.product.constant.ProductConstants.PAGE_RESULT_CACHE_TTL_SECONDS;
+import static io.github.sakana.product.constant.ProductConstants.PRODUCT_CACHE_TTL_SECONDS;
+
 @Component
 @Slf4j
 public class CacheService {
@@ -29,10 +32,10 @@ public class CacheService {
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     private static final String PRODUCT_KEY_PREFIX = "product-service:product";
-    private static final long PRODUCT_CACHE_EXPIRE_TIME = 600;
+    private static final long PRODUCT_CACHE_EXPIRE_TIME = PRODUCT_CACHE_TTL_SECONDS;
 
     private static final String PAGE_RESULT_KEY_PREFIX = "product-service:page";
-    private static final long PAGE_RESULT_CACHE_EXPIRE_TIME = 60;
+    private static final long PAGE_RESULT_CACHE_EXPIRE_TIME = PAGE_RESULT_CACHE_TTL_SECONDS;
 
 
     public String buildPageResultKey(Integer page, Integer size, Long categoryId, PageSort sort) {

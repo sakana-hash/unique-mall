@@ -2,6 +2,8 @@ package io.github.sakana.product.enumeration;
 
 import io.github.sakana.common.exception.BusinessException;
 
+import static io.github.sakana.product.constant.ProductConstants.MAX_SKU_QUERY_COUNT;
+
 /**
  * 商品服务对外暴露的稳定业务错误码。
  */
@@ -14,7 +16,9 @@ public enum ProductErrorCode {
     PRODUCT_NOT_ON_SALE("PRODUCT_NOT_ON_SALE", "商品已下架", 409),
     SKU_IDS_REQUIRED("PRODUCT_SKU_IDS_REQUIRED", "SKU ID列表不能为空", 400),
     SKU_QUERY_LIMIT_EXCEEDED(
-            "PRODUCT_SKU_QUERY_LIMIT_EXCEEDED", "单次最多查询50个SKU", 400
+            "PRODUCT_SKU_QUERY_LIMIT_EXCEEDED",
+            "单次最多查询" + MAX_SKU_QUERY_COUNT + "个SKU",
+            400
     ),
     SKU_ID_INVALID("PRODUCT_SKU_ID_INVALID", "SKU ID不合法", 400),
     SKU_ID_DUPLICATED("PRODUCT_SKU_ID_DUPLICATED", "SKU ID不能重复", 400),

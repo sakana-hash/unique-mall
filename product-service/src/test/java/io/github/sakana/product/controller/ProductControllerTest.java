@@ -2,6 +2,7 @@ package io.github.sakana.product.controller;
 
 import io.github.sakana.common.exception.BusinessException;
 import io.github.sakana.exception.GlobalExceptionHandler;
+import io.github.sakana.product.constant.OnSaleType;
 import io.github.sakana.product.enumeration.ProductErrorCode;
 import io.github.sakana.product.pojo.dto.ProductPageDTO;
 import io.github.sakana.product.pojo.entity.Product;
@@ -24,6 +25,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static io.github.sakana.product.constant.ProductConstants.DEFAULT_PAGE_NUMBER;
+import static io.github.sakana.product.constant.ProductConstants.DEFAULT_PAGE_SIZE;
+import static io.github.sakana.product.constant.ProductConstants.MIN_VALID_ID;
 
 class ProductControllerTest {
 
@@ -60,8 +64,10 @@ class ProductControllerTest {
         productService.failure = ProductErrorCode.CATEGORY_ID_INVALID.exception();
 
         mockMvc.perform(post("/api/product/page")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"page\":1,\"size\":20,\"categoryId\":0}"))
+                .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"page\":" + DEFAULT_PAGE_NUMBER
+                                + ",\"size\":" + DEFAULT_PAGE_SIZE
+                                + ",\"categoryId\":" + (MIN_VALID_ID - 1) + "}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("PRODUCT_CATEGORY_ID_INVALID"))
                 .andExpect(jsonPath("$.msg").value("商品分类ID不合法"));
@@ -73,19 +79,20 @@ class ProductControllerTest {
         productService.pageResult = PageVO.<ProductVO>builder()
                 .items(List.of())
                 .total(0L)
-                .page(1)
-                .size(20)
+                .page(DEFAULT_PAGE_NUMBER)
+                .size(DEFAULT_PAGE_SIZE)
                 .pages(0L)
                 .build();
 
         mockMvc.perform(post("/api/product/page")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"page\":1,\"size\":20}"))
+                        .content("{\"page\":" + DEFAULT_PAGE_NUMBER
+                                + ",\"size\":" + DEFAULT_PAGE_SIZE + "}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.total").value(0))
-                .andExpect(jsonPath("$.data.page").value(1))
-                .andExpect(jsonPath("$.data.size").value(20));
+                .andExpect(jsonPath("$.data.page").value(DEFAULT_PAGE_NUMBER))
+                .andExpect(jsonPath("$.data.size").value(DEFAULT_PAGE_SIZE));
     }
 
     @Test
@@ -93,7 +100,7 @@ class ProductControllerTest {
     void shouldReturnInvalidProductIdError() throws Exception {
         productService.failure = ProductErrorCode.PRODUCT_ID_INVALID.exception();
 
-        mockMvc.perform(get("/api/product/0"))
+        mockMvc.perform(get("/api/product/{id}", MIN_VALID_ID - 1))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("PRODUCT_ID_INVALID"))
                 .andExpect(jsonPath("$.msg").value("商品ID不合法"));
@@ -133,7 +140,7 @@ class ProductControllerTest {
         Product product = new Product();
         product.setId(1001L);
         product.setName("测试商品");
-        product.setStatus(1);
+        product.setStatus(OnSaleType.ONSALE);
         product.setImages(List.of());
         ProductSKU sku = new ProductSKU();
         sku.setPrice(9900L);

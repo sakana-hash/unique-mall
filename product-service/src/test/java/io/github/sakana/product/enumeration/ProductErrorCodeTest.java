@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static io.github.sakana.product.constant.ProductConstants.MAX_SKU_QUERY_COUNT;
 
 class ProductErrorCodeTest {
 
@@ -52,7 +53,9 @@ class ProductErrorCodeTest {
         assertError(ProductErrorCode.SKU_IDS_REQUIRED,
                 "PRODUCT_SKU_IDS_REQUIRED", "SKU ID列表不能为空", 400);
         assertError(ProductErrorCode.SKU_QUERY_LIMIT_EXCEEDED,
-                "PRODUCT_SKU_QUERY_LIMIT_EXCEEDED", "单次最多查询50个SKU", 400);
+                "PRODUCT_SKU_QUERY_LIMIT_EXCEEDED",
+                "单次最多查询" + MAX_SKU_QUERY_COUNT + "个SKU",
+                400);
         assertError(ProductErrorCode.SKU_ID_INVALID,
                 "PRODUCT_SKU_ID_INVALID", "SKU ID不合法", 400);
         assertError(ProductErrorCode.SKU_ID_DUPLICATED,

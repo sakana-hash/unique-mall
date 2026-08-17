@@ -23,6 +23,13 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static io.github.sakana.product.constant.ProductConstants.DEFAULT_PAGE_NUMBER;
+import static io.github.sakana.product.constant.ProductConstants.MAX_PAGE_SIZE;
+import static io.github.sakana.product.constant.ProductConstants.MAX_SKU_QUERY_COUNT;
+import static io.github.sakana.product.constant.ProductConstants.MIN_PAGE_NUMBER;
+import static io.github.sakana.product.constant.ProductConstants.MIN_PAGE_SIZE;
+import static io.github.sakana.product.constant.ProductConstants.MIN_VALID_ID;
+
 @Service
 @Slf4j
 public class ProductServiceImpl implements ProductService {
@@ -49,15 +56,15 @@ public class ProductServiceImpl implements ProductService {
         Integer size = pageDTO.getSize();
         Long categoryId = pageDTO.getCategoryId();
         PageSort sort = pageDTO.getSort();
-        if (page == null || page < 1) {
-            page = 1;
+        if (page == null || page < MIN_PAGE_NUMBER) {
+            page = DEFAULT_PAGE_NUMBER;
         }
-        if (size == null || size < 1) {
-            size = 1;
-        } else if (size > 100) {
-            size = 100;
+        if (size == null || size < MIN_PAGE_SIZE) {
+            size = MIN_PAGE_SIZE;
+        } else if (size > MAX_PAGE_SIZE) {
+            size = MAX_PAGE_SIZE;
         }
-        if (categoryId != null && categoryId <= 0) {
+        if (categoryId != null && categoryId < MIN_VALID_ID) {
             throw ProductErrorCode.CATEGORY_ID_INVALID.exception();
         }
 
@@ -65,7 +72,7 @@ public class ProductServiceImpl implements ProductService {
         PageResult result = cacheService.getPageResult(key);
         if (result == null) {
             PageQuery query = PageQuery.builder()
-                    .offset((page - 1) * size)
+                    .offset((page - MIN_PAGE_NUMBER) * size)
                     .size(size)
                     .categoryId(categoryId)
                     .sort(sort)
@@ -82,7 +89,7 @@ public class ProductServiceImpl implements ProductService {
                 .map(Product::toPageVO)
                 .collect(Collectors.toList());
 
-        Long pages = (result.getTotal() + size - 1) / size; // 总页数
+        Long pages = (result.getTotal() + size - MIN_PAGE_NUMBER) / size; // 总页数
         return PageVO.<ProductVO>builder()
                 .items(productVOS)
                 .total(result.getTotal())
@@ -94,7 +101,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product getDetail(Long id) {
-        if (id == null || id <= 0) {
+        if (id == null || id < MIN_VALID_ID) {
             throw ProductErrorCode.PRODUCT_ID_INVALID.exception();
         }
 
@@ -222,17 +229,17 @@ public class ProductServiceImpl implements ProductService {
         if (skuIds == null || skuIds.isEmpty()) {
             throw ProductErrorCode.SKU_IDS_REQUIRED.exception();
         }
-        if (skuIds.size() > 50) {
+        if (skuIds.size() > MAX_SKU_QUERY_COUNT) {
             throw ProductErrorCode.SKU_QUERY_LIMIT_EXCEEDED.exception(Map.of(
                     "currentCount", skuIds.size(),
-                    "maxCount", 50
+                    "maxCount", MAX_SKU_QUERY_COUNT
             ));
         }
 
         Set<Long> uniqueSkuIds = new HashSet<>();
         for (int index = 0; index < skuIds.size(); index++) {
             Long skuId = skuIds.get(index);
-            if (skuId == null || skuId <= 0) {
+            if (skuId == null || skuId < MIN_VALID_ID) {
                 throw ProductErrorCode.SKU_ID_INVALID.exception(Map.of("index", index));
             }
             if (!uniqueSkuIds.add(skuId)) {
