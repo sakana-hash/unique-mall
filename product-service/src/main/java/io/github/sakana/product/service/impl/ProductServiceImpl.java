@@ -15,11 +15,14 @@ import io.github.sakana.product.pojo.vo.PageVO;
 import io.github.sakana.product.pojo.vo.ProductVO;
 import io.github.sakana.product.service.CacheService;
 import io.github.sakana.product.service.ProductService;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,9 +32,9 @@ import static io.github.sakana.product.constant.ProductConstants.MAX_SKU_QUERY_C
 import static io.github.sakana.product.constant.ProductConstants.MIN_PAGE_NUMBER;
 import static io.github.sakana.product.constant.ProductConstants.MIN_PAGE_SIZE;
 import static io.github.sakana.product.constant.ProductConstants.MIN_VALID_ID;
+import static io.github.sakana.product.constant.ProductConstants.PAGE_CACHE_COLD_START_LOCK_WAIT_SECONDS;
 
 @Service
-@Slf4j
 public class ProductServiceImpl implements ProductService {
 
     @Autowired
@@ -44,10 +47,13 @@ public class ProductServiceImpl implements ProductService {
     private ProductImageMapper imageMapper;
     @Autowired
     private CacheService cacheService;
+    @Autowired
+    private RedissonClient redissonClient;
 
 
     @Override
     public PageVO<ProductVO> page(ProductPageDTO pageDTO) {
+        // 解析参数并进行校验
         if (pageDTO == null) {
             throw ProductErrorCode.PAGE_REQUEST_REQUIRED.exception();
         }
@@ -68,27 +74,15 @@ public class ProductServiceImpl implements ProductService {
             throw ProductErrorCode.CATEGORY_ID_INVALID.exception();
         }
 
-        String key = cacheService.buildPageResultKey(page, size, categoryId, sort);
-        PageResult result = cacheService.getPageResult(key);
-        if (result == null) {
-            PageQuery query = PageQuery.builder()
-                    .offset((page - MIN_PAGE_NUMBER) * size)
-                    .size(size)
-                    .categoryId(categoryId)
-                    .sort(sort)
-                    .build();
-            result = PageResult.builder()
-                    .ids(productMapper.selectPage(query))
-                    .total(productMapper.count(query))
-                    .build();
-            cacheService.setPageResult(key, result);
-        }
+        PageResult result = getPageResult(page, size, categoryId, sort);
 
+        // 获取分页结果后，根据商品id列表批量查询商品详情
         List<Product> products = batchGetDetails(result.getIds());
         List<ProductVO> productVOS = products.stream()
                 .map(Product::toPageVO)
                 .collect(Collectors.toList());
 
+        // 组装查询结果并返回
         Long pages = (result.getTotal() + size - MIN_PAGE_NUMBER) / size; // 总页数
         return PageVO.<ProductVO>builder()
                 .items(productVOS)
@@ -99,29 +93,151 @@ public class ProductServiceImpl implements ProductService {
                 .build();
     }
 
+    private PageResult getPageResult(Integer page, Integer size, Long categoryId, PageSort sort) {
+        // 尝试先从缓存服务中获取分页结果
+        String key = cacheService.buildPageResultKey(page, size, categoryId, sort);
+        PageResult result = cacheService.getPageResult(key);
+
+        // 如果获取到了未逻辑过期的数据，直接返回
+        if (isFreshPageResult(result)) {
+            return result;
+        }
+
+        // 获取到了逻辑过期的数据，抢到锁的线程进行重建，其他线程直接返回旧数据
+        if (result != null) {
+            return rebuildExpiredPageResult(
+                    key, page, size, categoryId, sort, result
+            );
+        }
+
+        // 没有可用的旧数据时，降级为抢到锁的线程进行重建，其他线程等待锁
+        return rebuildColdPageResult(key, page, size, categoryId, sort);
+    }
+
+    private PageResult rebuildExpiredPageResult(
+            String key,
+            Integer page,
+            Integer size,
+            Long categoryId,
+            PageSort sort,
+            PageResult staleResult
+    ) {
+        RLock lock = redissonClient.getLock(buildPageCacheLockKey(key));
+        boolean locked = false;
+
+        try {
+            locked = lock.tryLock();
+            if (!locked) {
+                return staleResult;
+            }
+
+            PageResult latest = cacheService.getPageResult(key);
+            if (isFreshPageResult(latest)) {
+                return latest;
+            }
+            return rebuildPageResult(key, page, size, categoryId, sort);
+        } finally {
+            if (locked && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    private PageResult rebuildColdPageResult(
+            String key,
+            Integer page,
+            Integer size,
+            Long categoryId,
+            PageSort sort
+    ) {
+        RLock lock = redissonClient.getLock(buildPageCacheLockKey(key));
+        boolean locked = false;
+        try {
+            locked = lock.tryLock(
+                    PAGE_CACHE_COLD_START_LOCK_WAIT_SECONDS,
+                    TimeUnit.SECONDS
+            );
+            if (!locked) {
+                PageResult latest = cacheService.getPageResult(key);
+                if (latest != null) {
+                    return latest;
+                }
+                throw new IllegalStateException("等待分页缓存初始化超时");
+            }
+
+            PageResult latest = cacheService.getPageResult(key);
+            if (latest != null) {
+                return latest;
+            }
+
+            return rebuildPageResult(key, page, size, categoryId, sort);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("等待分页缓存初始化时线程被中断", e);
+        } finally {
+            if (locked && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    private PageResult rebuildPageResult(
+            String key,
+            Integer page,
+            Integer size,
+            Long categoryId,
+            PageSort sort
+    ) {
+        PageQuery query = PageQuery.builder()
+                .offset((page - MIN_PAGE_NUMBER) * size)
+                .size(size)
+                .categoryId(categoryId)
+                .sort(sort)
+                .build();
+        PageResult result = PageResult.builder()
+                .ids(productMapper.selectPage(query))
+                .total(productMapper.count(query))
+                .build();
+        cacheService.setPageResult(key, result);
+        return result;
+    }
+
+    private static String buildPageCacheLockKey(String key) {
+        return "lock:" + key;
+    }
+
+    private static boolean isFreshPageResult(PageResult result) {
+        return result != null && LocalDateTime.now().isBefore(result.getExpireTime());
+    }
+
     @Override
     public Product getDetail(Long id) {
+        // id合法性校验
         if (id == null || id < MIN_VALID_ID) {
             throw ProductErrorCode.PRODUCT_ID_INVALID.exception();
         }
 
+        // 尝试先从缓存服务中获取商品详情
         Product product = cacheService.getProduct(id);
         if (product != null) {
+            // 获取到商品详情后，对商品进行在售检验
             if (!Objects.equals(product.getStatus(), OnSaleType.ONSALE)) {
                 throw ProductErrorCode.PRODUCT_NOT_ON_SALE.exception(Map.of("productId", id));
             }
             return product;
         }
 
+        // 没有命中缓存时，降级到数据库查找
         product = productMapper.selectById(id);
-        // todo 防止缓存击穿
         if (product == null) {
+            // info 不存在 ID 的数据库查询约 20ms, 成本可接受, 如果攻击者使用同一用户进行攻击，考虑网关用户级限流
             throw ProductErrorCode.PRODUCT_NOT_FOUND.exception(Map.of("productId", id));
         }
         if (!Objects.equals(product.getStatus(), OnSaleType.ONSALE)) {
             throw ProductErrorCode.PRODUCT_NOT_ON_SALE.exception(Map.of("productId", id));
         }
 
+        // 组装商品详情
         ProductDetail detail = detailMapper.selectByProductId(id);
         if (detail != null) {
             product.setContent(detail.getContent());
@@ -129,6 +245,7 @@ public class ProductServiceImpl implements ProductService {
         product.setImages(imageMapper.selectByProductId(id));
         product.setSkus(skuMapper.selectByProductId(id));
 
+        // 将商品详情写入缓存
         cacheService.setProduct(product);
         return product;
     }
@@ -141,6 +258,7 @@ public class ProductServiceImpl implements ProductService {
      * @return 商品明细列表（与入参 ids 顺序一致）
      */
     private List<Product> batchGetDetails(List<Long> ids) {
+        // 非空性校验
         if (ids == null || ids.isEmpty()) {
             return new ArrayList<>();
         }
@@ -149,6 +267,7 @@ public class ProductServiceImpl implements ProductService {
         Map<Long, Product> cachedMap = new HashMap<>();
         List<Long> missIds = new ArrayList<>();
 
+        // 先尝试从缓存中获取商品详情，记录未命中缓存的商品id
         List<Product> products = cacheService.getProducts(ids);
         if (products == null) {
             missIds = ids;

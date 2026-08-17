@@ -28,24 +28,32 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static io.github.sakana.product.constant.ProductConstants.DEFAULT_PAGE_NUMBER;
 import static io.github.sakana.product.constant.ProductConstants.MAX_PAGE_SIZE;
 import static io.github.sakana.product.constant.ProductConstants.MAX_SKU_QUERY_COUNT;
 import static io.github.sakana.product.constant.ProductConstants.MIN_PAGE_NUMBER;
 import static io.github.sakana.product.constant.ProductConstants.MIN_VALID_ID;
+import static io.github.sakana.product.constant.ProductConstants.PAGE_CACHE_COLD_START_LOCK_WAIT_SECONDS;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceImplTest {
@@ -60,6 +68,10 @@ class ProductServiceImplTest {
     private ProductImageMapper imageMapper;
     @Mock
     private CacheService cacheService;
+    @Mock
+    private RedissonClient redissonClient;
+    @Mock
+    private RLock pageCacheLock;
 
     @InjectMocks
     private ProductServiceImpl productService;
@@ -106,6 +118,7 @@ class ProductServiceImplTest {
         PageResult cachedResult = PageResult.builder()
                 .ids(List.of())
                 .total(0L)
+                .expireTime(LocalDateTime.now().plusMinutes(1))
                 .build();
         when(cacheService.buildPageResultKey(
                 DEFAULT_PAGE_NUMBER, MAX_PAGE_SIZE, null, PageSort.DEFAULT
@@ -120,6 +133,217 @@ class ProductServiceImplTest {
         assertEquals(0L, result.getTotal());
         assertEquals(0L, result.getPages());
         assertEquals(List.of(), result.getItems());
+        verifyNoInteractions(redissonClient);
+    }
+
+    @Test
+    @DisplayName("分页缓存过期且未获取锁时立即返回旧数据")
+    void shouldReturnStalePageResultWhenRefreshLockIsHeld() {
+        ProductPageDTO request = new ProductPageDTO();
+        PageResult staleResult = PageResult.builder()
+                .ids(List.of())
+                .total(0L)
+                .expireTime(LocalDateTime.now().minusMinutes(1))
+                .build();
+        when(cacheService.buildPageResultKey(
+                DEFAULT_PAGE_NUMBER, request.getSize(), null, PageSort.DEFAULT
+        )).thenReturn("page-key");
+        when(cacheService.getPageResult("page-key")).thenReturn(staleResult);
+        when(redissonClient.getLock("lock:page-key")).thenReturn(pageCacheLock);
+        when(pageCacheLock.tryLock()).thenReturn(false);
+
+        PageVO<ProductVO> result = productService.page(request);
+
+        assertEquals(0L, result.getTotal());
+        assertEquals(List.of(), result.getItems());
+        verify(pageCacheLock).tryLock();
+        verifyNoInteractions(productMapper, detailMapper, imageMapper, skuMapper);
+    }
+
+    @Test
+    @DisplayName("分页缓存过期且获取锁时同步重建缓存")
+    void shouldRebuildExpiredPageResultSynchronously() {
+        ProductPageDTO request = new ProductPageDTO();
+        PageResult staleResult = PageResult.builder()
+                .ids(List.of())
+                .total(0L)
+                .expireTime(LocalDateTime.now().minusMinutes(1))
+                .build();
+        when(cacheService.buildPageResultKey(
+                DEFAULT_PAGE_NUMBER, request.getSize(), null, PageSort.DEFAULT
+        )).thenReturn("page-key");
+        when(cacheService.getPageResult("page-key"))
+                .thenReturn(staleResult, staleResult);
+        when(redissonClient.getLock("lock:page-key")).thenReturn(pageCacheLock);
+        when(pageCacheLock.tryLock()).thenReturn(true);
+        when(pageCacheLock.isHeldByCurrentThread()).thenReturn(true);
+        when(productMapper.selectPage(any())).thenReturn(List.of());
+        when(productMapper.count(any())).thenReturn(0L);
+
+        PageVO<ProductVO> result = productService.page(request);
+
+        assertEquals(0L, result.getTotal());
+        verify(cacheService).setPageResult(any(), any(PageResult.class));
+        verify(pageCacheLock).unlock();
+    }
+
+    @Test
+    @DisplayName("分页缓存过期且获取锁后发现新缓存时不重复执行SQL")
+    void shouldReuseFreshPageResultAfterRefreshLockAcquired() {
+        ProductPageDTO request = new ProductPageDTO();
+        PageResult staleResult = PageResult.builder()
+                .ids(List.of())
+                .total(0L)
+                .expireTime(LocalDateTime.now().minusMinutes(1))
+                .build();
+        PageResult freshResult = PageResult.builder()
+                .ids(List.of())
+                .total(0L)
+                .expireTime(LocalDateTime.now().plusMinutes(1))
+                .build();
+        when(cacheService.buildPageResultKey(
+                DEFAULT_PAGE_NUMBER, request.getSize(), null, PageSort.DEFAULT
+        )).thenReturn("page-key");
+        when(cacheService.getPageResult("page-key"))
+                .thenReturn(staleResult, freshResult);
+        when(redissonClient.getLock("lock:page-key")).thenReturn(pageCacheLock);
+        when(pageCacheLock.tryLock()).thenReturn(true);
+        when(pageCacheLock.isHeldByCurrentThread()).thenReturn(true);
+
+        PageVO<ProductVO> result = productService.page(request);
+
+        assertEquals(0L, result.getTotal());
+        verify(pageCacheLock).unlock();
+        verifyNoInteractions(productMapper, detailMapper, imageMapper, skuMapper);
+    }
+
+    @Test
+    @DisplayName("冷缓存等待获取锁后发现缓存已重建时不重复执行SQL")
+    void shouldReusePageResultAfterColdStartLockAcquired() throws InterruptedException {
+        ProductPageDTO request = new ProductPageDTO();
+        PageResult freshResult = PageResult.builder()
+                .ids(List.of())
+                .total(0L)
+                .expireTime(LocalDateTime.now().plusMinutes(1))
+                .build();
+        when(cacheService.buildPageResultKey(
+                DEFAULT_PAGE_NUMBER, request.getSize(), null, PageSort.DEFAULT
+        )).thenReturn("page-key");
+        when(cacheService.getPageResult("page-key"))
+                .thenReturn(null, freshResult);
+        when(redissonClient.getLock("lock:page-key")).thenReturn(pageCacheLock);
+        when(pageCacheLock.tryLock(
+                PAGE_CACHE_COLD_START_LOCK_WAIT_SECONDS, TimeUnit.SECONDS
+        )).thenReturn(true);
+        when(pageCacheLock.isHeldByCurrentThread()).thenReturn(true);
+
+        PageVO<ProductVO> result = productService.page(request);
+
+        assertEquals(0L, result.getTotal());
+        verify(pageCacheLock).unlock();
+        verifyNoInteractions(productMapper, detailMapper, imageMapper, skuMapper);
+    }
+
+    @Test
+    @DisplayName("冷缓存第一个请求获取锁后重建缓存")
+    void shouldRebuildColdPageCache() throws InterruptedException {
+        ProductPageDTO request = new ProductPageDTO();
+        when(cacheService.buildPageResultKey(
+                DEFAULT_PAGE_NUMBER, request.getSize(), null, PageSort.DEFAULT
+        )).thenReturn("page-key");
+        when(cacheService.getPageResult("page-key")).thenReturn(null);
+        when(redissonClient.getLock("lock:page-key")).thenReturn(pageCacheLock);
+        when(pageCacheLock.tryLock(
+                PAGE_CACHE_COLD_START_LOCK_WAIT_SECONDS, TimeUnit.SECONDS
+        )).thenReturn(true);
+        when(pageCacheLock.isHeldByCurrentThread()).thenReturn(true);
+        when(productMapper.selectPage(any())).thenReturn(List.of());
+        when(productMapper.count(any())).thenReturn(0L);
+
+        PageVO<ProductVO> result = productService.page(request);
+
+        assertEquals(0L, result.getTotal());
+        verify(cacheService).setPageResult(any(), any(PageResult.class));
+        verify(pageCacheLock).unlock();
+    }
+
+    @Test
+    @DisplayName("冷缓存等待锁超时且仍无缓存时结束等待")
+    void shouldFailWhenColdCacheLockTimesOut() throws InterruptedException {
+        ProductPageDTO request = new ProductPageDTO();
+        when(cacheService.buildPageResultKey(
+                DEFAULT_PAGE_NUMBER, request.getSize(), null, PageSort.DEFAULT
+        )).thenReturn("page-key");
+        when(cacheService.getPageResult("page-key")).thenReturn(null);
+        when(redissonClient.getLock("lock:page-key")).thenReturn(pageCacheLock);
+        when(pageCacheLock.tryLock(
+                PAGE_CACHE_COLD_START_LOCK_WAIT_SECONDS, TimeUnit.SECONDS
+        )).thenReturn(false);
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> productService.page(request)
+        );
+
+        assertEquals("等待分页缓存初始化超时", exception.getMessage());
+        verify(pageCacheLock, never()).unlock();
+        verifyNoInteractions(productMapper, detailMapper, imageMapper, skuMapper);
+    }
+
+    @Test
+    @DisplayName("冷缓存等待锁超时但缓存已重建时直接返回")
+    void shouldReturnRebuiltPageResultWhenColdCacheLockTimesOut()
+            throws InterruptedException {
+        ProductPageDTO request = new ProductPageDTO();
+        PageResult freshResult = PageResult.builder()
+                .ids(List.of())
+                .total(0L)
+                .expireTime(LocalDateTime.now().plusMinutes(1))
+                .build();
+        when(cacheService.buildPageResultKey(
+                DEFAULT_PAGE_NUMBER, request.getSize(), null, PageSort.DEFAULT
+        )).thenReturn("page-key");
+        when(cacheService.getPageResult("page-key"))
+                .thenReturn(null, freshResult);
+        when(redissonClient.getLock("lock:page-key")).thenReturn(pageCacheLock);
+        when(pageCacheLock.tryLock(
+                PAGE_CACHE_COLD_START_LOCK_WAIT_SECONDS, TimeUnit.SECONDS
+        )).thenReturn(false);
+
+        PageVO<ProductVO> result = productService.page(request);
+
+        assertEquals(0L, result.getTotal());
+        verify(pageCacheLock, never()).unlock();
+        verifyNoInteractions(productMapper, detailMapper, imageMapper, skuMapper);
+    }
+
+    @Test
+    @DisplayName("冷缓存等待锁被中断时恢复线程中断状态")
+    void shouldRestoreInterruptStatusWhenColdCacheWaitIsInterrupted()
+            throws InterruptedException {
+        ProductPageDTO request = new ProductPageDTO();
+        when(cacheService.buildPageResultKey(
+                DEFAULT_PAGE_NUMBER, request.getSize(), null, PageSort.DEFAULT
+        )).thenReturn("page-key");
+        when(cacheService.getPageResult("page-key")).thenReturn(null);
+        when(redissonClient.getLock("lock:page-key")).thenReturn(pageCacheLock);
+        when(pageCacheLock.tryLock(
+                PAGE_CACHE_COLD_START_LOCK_WAIT_SECONDS, TimeUnit.SECONDS
+        )).thenThrow(new InterruptedException("interrupted"));
+
+        try {
+            IllegalStateException exception = assertThrows(
+                    IllegalStateException.class,
+                    () -> productService.page(request)
+            );
+
+            assertEquals("等待分页缓存初始化时线程被中断", exception.getMessage());
+            assertTrue(Thread.currentThread().isInterrupted());
+            verify(pageCacheLock, never()).unlock();
+            verifyNoInteractions(productMapper, detailMapper, imageMapper, skuMapper);
+        } finally {
+            Thread.interrupted();
+        }
     }
 
     @ParameterizedTest

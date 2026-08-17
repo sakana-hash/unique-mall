@@ -16,6 +16,8 @@ public final class ProductConstants {
 
     public static final long PRODUCT_CACHE_TTL_SECONDS = 600L;
     public static final long PAGE_RESULT_CACHE_TTL_SECONDS = 60L;
+    public static final long PAGE_RESULT_CACHE_PHYSICAL_TTL_SECONDS = 86_400L;
+    public static final int PAGE_CACHE_COLD_START_LOCK_WAIT_SECONDS = 3;
 
     private ProductConstants() {
     }
