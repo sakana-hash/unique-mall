@@ -3,6 +3,7 @@ package io.github.sakana.product.service.impl;
 import io.github.sakana.product.constant.ImageType;
 import io.github.sakana.product.constant.OnSaleType;
 import io.github.sakana.product.enumeration.PageSort;
+import io.github.sakana.product.enumeration.ProductErrorCode;
 import io.github.sakana.product.mapper.ProductDetailMapper;
 import io.github.sakana.product.mapper.ProductImageMapper;
 import io.github.sakana.product.mapper.ProductMapper;
@@ -78,22 +79,24 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product getDetail(Long id) {
         if (id == null || id <= 0) {
-            throw new RuntimeException(String.format(
-                    "无效的商品id: %d", id
-            ));
+            throw ProductErrorCode.PRODUCT_ID_INVALID.exception();
         }
 
         Product product = cacheService.getProduct(id);
         if (product != null) {
+            if (!Objects.equals(product.getStatus(), OnSaleType.ONSALE)) {
+                throw ProductErrorCode.PRODUCT_NOT_ON_SALE.exception(Map.of("productId", id));
+            }
             return product;
         }
 
         product = productMapper.selectById(id);
         // todo 防止缓存击穿
-        if (product == null || product.getStatus() != 1) {
-            throw new RuntimeException(String.format(
-                    "商品不存在: %d", id
-            ));
+        if (product == null) {
+            throw ProductErrorCode.PRODUCT_NOT_FOUND.exception(Map.of("productId", id));
+        }
+        if (!Objects.equals(product.getStatus(), OnSaleType.ONSALE)) {
+            throw ProductErrorCode.PRODUCT_NOT_ON_SALE.exception(Map.of("productId", id));
         }
 
         ProductDetail detail = detailMapper.selectByProductId(id);
